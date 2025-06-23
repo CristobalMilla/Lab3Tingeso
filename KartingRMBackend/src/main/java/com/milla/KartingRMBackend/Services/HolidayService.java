@@ -24,7 +24,7 @@ public class HolidayService {
     public HolidayEntity findHolidayByDate(LocalDate date){
         int month = date.getMonthValue();
         int day = date.getDayOfMonth();
-        return holidayRepository.findByDate(month, day);
+        return holidayRepository.findByMonthAndDay(month, day);
     }
     //Save
     public HolidayEntity saveHoliday(HolidayEntity holidayEntity){
