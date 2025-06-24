@@ -4,12 +4,11 @@ import com.milla.KartingRMBackend.Entities.FeeTypeEntity;
 import com.milla.KartingRMBackend.Services.FeeTypeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Controller
+@RestController
 @RequestMapping("/api/feeType")
 public class FeeTypeController {
     @Autowired
