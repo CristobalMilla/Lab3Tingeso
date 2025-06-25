@@ -7,26 +7,26 @@ import com.milla.KartingRMBackend.Entities.RentEntity;
 import com.milla.KartingRMBackend.Repositories.FrequencyDiscountRepository;
 import com.milla.KartingRMBackend.Repositories.ReceiptRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
 public class ReceiptService {
-    @Autowired
-    private ReceiptRepository receiptRepository;
-    @Autowired
-    private RentService rentService;
-    @Autowired
-    private FrequencyDiscountRepository frequencyDiscountRepository;
-    @Autowired
-    private BirthdayService birthdayService;
-    @Autowired
-    private HolidayService holidayService;
+    private final ReceiptRepository receiptRepository;
+    private final RentService rentService;
+    private final FrequencyDiscountRepository frequencyDiscountRepository;
+    private final BirthdayService birthdayService;
+    private final HolidayService holidayService;
+
+    public ReceiptService(ReceiptRepository receiptRepository, RentService rentService, FrequencyDiscountRepository frequencyDiscountRepository, BirthdayService birthdayService, HolidayService holidayService) {
+        this.receiptRepository = receiptRepository;
+        this.rentService = rentService;
+        this.frequencyDiscountRepository = frequencyDiscountRepository;
+        this.birthdayService = birthdayService;
+        this.holidayService = holidayService;
+    }
 
     //Getters
     public List<ReceiptEntity> getAll(){
@@ -95,33 +95,30 @@ public class ReceiptService {
 
         // Get frequency discount
         FrequencyDiscountEntity frequencyDiscount = frequencyDiscountRepository.findByClientFrequency(peopleAmount);
-        BigDecimal f_discount;
+        BigDecimal fDiscount;
         if (frequencyDiscount == null) {
-            f_discount = BigDecimal.ONE;
+            fDiscount = BigDecimal.ONE;
         }
         else {
-            f_discount = frequencyDiscount.getDiscount();
+            fDiscount = frequencyDiscount.getDiscount();
         }
 
         // Check if it's the client's birthday and get birthday discount
-        BigDecimal b_discount = BigDecimal.ONE;
+        BigDecimal bDiscount = BigDecimal.ONE;
         boolean isItsBirthday = birthdayService.isItsBirthday(rent.getMainClient(), rent.getRentDate());
 
         if (isItsBirthday) {
             BigDecimal birthdayDiscount = birthdayService.findBirthdayDiscountByName(rent.getMainClient());
             if (birthdayDiscount != null) {
-                b_discount = birthdayDiscount;
+                bDiscount = birthdayDiscount;
             }
         }
 
         // Get holiday discount
-        BigDecimal h_discount = holidayService.findHolidayDiscountByDate(rent.getRentDate());
-        if (h_discount == null) {
-            h_discount = BigDecimal.ONE;
-        }
+        BigDecimal hDiscount = holidayService.findHolidayDiscountByDate(rent.getRentDate());
 
         // Return the minimum discount (maximum benefit for the client)
-        return f_discount.min(h_discount).min(b_discount);
+        return fDiscount.min(hDiscount).min(bDiscount);
     }
     //Funcion que calcula los distintos campos de un recibo creado
     //Se asume que descuento por cantidad de personas y el especial son multiplicativos

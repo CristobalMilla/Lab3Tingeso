@@ -2,7 +2,6 @@ package com.milla.KartingRMBackend.Services;
 
 import com.milla.KartingRMBackend.Entities.BirthdayEntity;
 import com.milla.KartingRMBackend.Repositories.BirthdayRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -11,9 +10,12 @@ import java.util.List;
 
 @Service
 public class BirthdayService {
-    @Autowired
-    private BirthdayRepository birthdayRepository;
 
+    private final BirthdayRepository birthdayRepository;
+
+    public BirthdayService(BirthdayRepository birthdayRepository) {
+        this.birthdayRepository = birthdayRepository;
+    }
     //Getters
     public List<BirthdayEntity> findAllBirthday(){
         return birthdayRepository.findAll();
@@ -40,12 +42,9 @@ public class BirthdayService {
     //Boolean of its birthday
     public boolean isItsBirthday(String name, LocalDate date){
         LocalDate birthdayDate = findBirthdayDateByName(name);
-        if (birthdayDate != null) {
-            if (birthdayDate.getDayOfMonth() == date.getDayOfMonth()
-                    && birthdayDate.getMonth() == date.getMonth()) {
-                return true;
-            }
-        } return false;
+        return birthdayDate != null
+                && birthdayDate.getDayOfMonth() == date.getDayOfMonth()
+                && birthdayDate.getMonth() == date.getMonth();
 
     }
     public BigDecimal findBirthdayDiscountByName(String name){

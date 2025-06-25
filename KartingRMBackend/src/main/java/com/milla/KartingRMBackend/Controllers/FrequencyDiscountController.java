@@ -2,7 +2,6 @@ package com.milla.KartingRMBackend.Controllers;
 
 import com.milla.KartingRMBackend.Entities.FrequencyDiscountEntity;
 import com.milla.KartingRMBackend.Services.FrequencyDiscountService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,8 +11,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/frequencyDiscount")
 public class FrequencyDiscountController {
-    @Autowired
-    FrequencyDiscountService frequencyDiscountService;
+    private final FrequencyDiscountService frequencyDiscountService;
+
+    public FrequencyDiscountController(FrequencyDiscountService frequencyDiscountService) {
+        this.frequencyDiscountService = frequencyDiscountService;
+    }
 
     //Getters
     @GetMapping("/all")

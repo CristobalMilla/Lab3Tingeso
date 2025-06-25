@@ -18,10 +18,12 @@ public class HolidayEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "holiday_id")
     private int holidayId;
+    @Column(name = "name")
     private String name;
-    @Column(name = "holiday_month")
+    @Column(name = "month")
     private int month;
-    @Column(name = "holiday_day")
+    @Column(name = "day")
     private int day;
+    @Column(name = "discount")
     BigDecimal discount;
 }

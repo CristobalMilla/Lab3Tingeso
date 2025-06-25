@@ -21,6 +21,8 @@ public class FeeTypeEntity {
     private int lapNumber;
     @Column(name = "max_time")
     private int maxTime;
+    @Column(name = "price")
     private BigDecimal price;
+    @Column(name = "duration")
     private int duration;
 }

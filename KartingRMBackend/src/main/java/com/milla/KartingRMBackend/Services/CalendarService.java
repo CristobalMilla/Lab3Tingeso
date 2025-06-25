@@ -2,10 +2,7 @@ package com.milla.KartingRMBackend.Services;
 
 import com.milla.KartingRMBackend.DTO.CalendarEvent;
 import com.milla.KartingRMBackend.Entities.RentEntity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -13,8 +10,11 @@ import java.util.*;
 
 @Service
 public class CalendarService {
-    @Autowired
-    private RentService rentService;
+    private final RentService rentService;
+
+    public CalendarService(RentService rentService) {
+        this.rentService = rentService;
+    }
 
 
     //Funcion que recupera las rentas de la semana especificada

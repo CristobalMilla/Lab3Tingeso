@@ -1,0 +1,96 @@
+CREATE TABLE fee_type (
+    fee_type_id SERIAL PRIMARY KEY,
+    lap_number INT NOT NULL,
+    max_time INT NOT NULL,
+    price NUMERIC(10, 2) NOT NULL,
+    duration INT NOT NULL
+);
+INSERT INTO fee_type (lap_number, max_time, price, duration)
+VALUES 
+    (10, 10, 15000, 30),
+    (15, 15, 20000, 35),
+    (20, 20, 25000, 40);
+
+
+CREATE TABLE frequency_discount (
+    frequency_discount_id SERIAL PRIMARY KEY,
+    category VARCHAR(255) NOT NULL,
+    min_frequency INT NOT NULL,
+    max_frequency INT NOT NULL,
+    discount NUMERIC(10, 2) NOT NULL
+);
+INSERT INTO frequency_discount (category, min_frequency, max_frequency, discount)
+VALUES 
+    ('No frecuente', 0, 1, 1.00),
+    ('Regular', 2, 4, 0.90),
+    ('Frecuente', 5, 6, 0.80),
+    ('Muy frecuente', 7, 1000, 0.70);
+
+
+CREATE TABLE people_discount (
+    people_discount_id SERIAL PRIMARY KEY,
+    min_people INT NOT NULL,
+    max_people INT NOT NULL,
+    discount NUMERIC(10, 2) NOT NULL
+);
+INSERT INTO people_discount (min_people, max_people, discount)
+VALUES 
+    (1, 2, 1),
+    (3, 5, 0.90),
+    (6, 10, 0.80),
+    (11, 15, 0.70);
+
+
+CREATE TABLE birthday (
+    birthday_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    date DATE NOT NULL,
+    discount NUMERIC(10, 2) NOT NULL
+);
+INSERT INTO birthday (name, date, discount)
+VALUES 
+    ('Juan Ejemplo', '1994-03-12', 0.9),
+    ('Margarita Ejemplo', '2001-01-30', 0.9),
+    ('Cristobal Milla', '1995-10-19', 0.9);
+
+
+CREATE TABLE holiday (
+    holiday_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    month INT NOT NULL,
+    day INT NOT NULL,
+    discount NUMERIC(10, 2) NOT NULL
+);
+INSERT INTO holiday (name, date, discount)
+VALUES 
+    ('Navidad', 12, 25, 0.9),
+    ('New Year', 1, 1, 0.9),
+    ('Halloween', 10, 31, 0.9),
+    ('Independencia de Chile', 9, 18, 0.9);
+
+
+CREATE TABLE rent (
+    rent_id SERIAL PRIMARY KEY,
+    rent_code VARCHAR(255) NOT NULL,
+    rent_date DATE NOT NULL,
+    rent_time TIME NOT NULL,
+    fee_type_id INT NOT NULL,
+    people_number INT NOT NULL CHECK (people_number >= 1 AND people_number <= 15),
+    main_client VARCHAR(255) NOT NULL,
+    total_price DECIMAL(10, 2)
+);
+
+CREATE TABLE receipt (
+    receipt_id SERIAL PRIMARY KEY,
+    rent_id INT NOT NULL,
+    sub_client_name VARCHAR(255) NOT NULL,
+    sub_client_email VARCHAR(255) NOT NULL,
+    base_tariff DECIMAL(10, 2),
+    size_discount DECIMAL(10, 2),
+    special_discount DECIMAL(10, 2),
+    aggregated_price DECIMAL(10, 2),
+    iva_price DECIMAL(10, 2),
+    final_price DECIMAL(10, 2)
+);
+
+

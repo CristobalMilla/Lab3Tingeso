@@ -4,7 +4,6 @@ import com.milla.KartingRMBackend.DTO.RentRequestDTO;
 import com.milla.KartingRMBackend.Entities.ReceiptEntity;
 import com.milla.KartingRMBackend.Entities.RentEntity;
 import com.milla.KartingRMBackend.Services.ReceiptService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,8 +13,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/receipt")
 public class ReceiptController {
-    @Autowired
-    private ReceiptService receiptService;
+    private final ReceiptService receiptService;
+
+    public ReceiptController(ReceiptService receiptService) {
+        this.receiptService = receiptService;
+    }
+
 
     //Getters
     @GetMapping("/all")

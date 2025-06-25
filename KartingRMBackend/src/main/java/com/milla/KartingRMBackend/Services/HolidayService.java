@@ -2,7 +2,6 @@ package com.milla.KartingRMBackend.Services;
 
 import com.milla.KartingRMBackend.Entities.HolidayEntity;
 import com.milla.KartingRMBackend.Repositories.HolidayRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -11,8 +10,11 @@ import java.util.List;
 
 @Service
 public class HolidayService {
-    @Autowired
-    HolidayRepository holidayRepository;
+    private final HolidayRepository holidayRepository;
+
+    public HolidayService(HolidayRepository holidayRepository) {
+        this.holidayRepository = holidayRepository;
+    }
 
     //Getters
     public List<HolidayEntity> findAllHolidays(){

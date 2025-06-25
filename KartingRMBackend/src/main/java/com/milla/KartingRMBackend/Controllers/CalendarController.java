@@ -3,7 +3,6 @@ package com.milla.KartingRMBackend.Controllers;
 import com.milla.KartingRMBackend.DTO.CalendarEvent;
 import com.milla.KartingRMBackend.Entities.RentEntity;
 import com.milla.KartingRMBackend.Services.CalendarService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,8 +16,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/calendar")
 public class CalendarController {
-    @Autowired
-    private CalendarService calendarService;
+
+    private final CalendarService calendarService;
+
+    public CalendarController(CalendarService calendarService) {
+        this.calendarService = calendarService;
+    }
+
 
     //Funcion que recupera las rentas de la semana especificada
     @GetMapping("/singleWeek")

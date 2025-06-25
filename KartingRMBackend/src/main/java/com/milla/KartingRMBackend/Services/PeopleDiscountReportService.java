@@ -1,7 +1,6 @@
 package com.milla.KartingRMBackend.Services;
 
 import com.milla.KartingRMBackend.Entities.PeopleDiscountEntity;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -13,11 +12,13 @@ import java.util.Map;
 
 @Service
 public class PeopleDiscountReportService {
+    private final PeopleDiscountService peopleDiscountService;
+    private final RentService rentService;
 
-    @Autowired
-    private PeopleDiscountService peopleDiscountService;
-    @Autowired
-    private RentService rentService;
+    public PeopleDiscountReportService(PeopleDiscountService peopleDiscountService, RentService rentService) {
+        this.peopleDiscountService = peopleDiscountService;
+        this.rentService = rentService;
+    }
 
     private List<String> getMonthsBetween(String startMonth, String endMonth) {
         YearMonth start = YearMonth.parse(startMonth);
@@ -54,8 +55,7 @@ public class PeopleDiscountReportService {
         // Fetch all people discounts
         List<PeopleDiscountEntity> peopleDiscounts = peopleDiscountService.getAll();
         if(peopleDiscounts == null){
-            System.out.println("No hay discount");
-            return null;
+            return new ArrayList<>();
         }
         // Prepare months list
         List<String> months = getMonthsBetween(startMonth, endMonth);

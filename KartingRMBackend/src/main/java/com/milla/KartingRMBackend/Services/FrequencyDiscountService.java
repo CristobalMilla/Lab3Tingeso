@@ -2,15 +2,17 @@ package com.milla.KartingRMBackend.Services;
 
 import com.milla.KartingRMBackend.Entities.FrequencyDiscountEntity;
 import com.milla.KartingRMBackend.Repositories.FrequencyDiscountRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class FrequencyDiscountService {
-    @Autowired
-    private FrequencyDiscountRepository frequencyDiscountRepository;
+    private final FrequencyDiscountRepository frequencyDiscountRepository;
+
+    public FrequencyDiscountService(FrequencyDiscountRepository frequencyDiscountRepository) {
+        this.frequencyDiscountRepository = frequencyDiscountRepository;
+    }
 
     //Getters
     public List<FrequencyDiscountEntity> getAll(){

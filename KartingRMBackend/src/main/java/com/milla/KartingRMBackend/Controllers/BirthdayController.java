@@ -3,7 +3,6 @@ package com.milla.KartingRMBackend.Controllers;
 
 import com.milla.KartingRMBackend.Entities.BirthdayEntity;
 import com.milla.KartingRMBackend.Services.BirthdayService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,8 +13,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/birthday")
 public class BirthdayController {
-    @Autowired
-    private BirthdayService birthdayService;
+    private final BirthdayService birthdayService;
+
+    public BirthdayController(BirthdayService birthdayService) {
+        this.birthdayService = birthdayService;
+    }
 
     //Getters
     @GetMapping("/all")

@@ -2,15 +2,17 @@ package com.milla.KartingRMBackend.Services;
 
 import com.milla.KartingRMBackend.Entities.PeopleDiscountEntity;
 import com.milla.KartingRMBackend.Repositories.PeopleDiscountRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class PeopleDiscountService {
-    @Autowired
-    private PeopleDiscountRepository peopleDiscountRepository;
+    private final PeopleDiscountRepository peopleDiscountRepository;
+
+    public PeopleDiscountService(PeopleDiscountRepository peopleDiscountRepository) {
+        this.peopleDiscountRepository = peopleDiscountRepository;
+    }
 
     //Getters
     public List<PeopleDiscountEntity> getAll(){

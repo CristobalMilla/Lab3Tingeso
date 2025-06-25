@@ -2,7 +2,6 @@ package com.milla.KartingRMBackend.Controllers;
 
 import com.milla.KartingRMBackend.Entities.PeopleDiscountEntity;
 import com.milla.KartingRMBackend.Services.PeopleDiscountService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,8 +11,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/peopleDiscount")
 public class PeopleDiscountController {
-    @Autowired
-    PeopleDiscountService peopleDiscountService;
+    private final PeopleDiscountService peopleDiscountService;
+
+    public PeopleDiscountController(PeopleDiscountService peopleDiscountService) {
+        this.peopleDiscountService = peopleDiscountService;
+    }
 
     //Getters
     @GetMapping("/all")

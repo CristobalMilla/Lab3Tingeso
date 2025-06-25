@@ -6,9 +6,7 @@ import com.milla.KartingRMBackend.Entities.RentEntity;
 import com.milla.KartingRMBackend.Repositories.FeeTypeRepository;
 import com.milla.KartingRMBackend.Repositories.PeopleDiscountRepository;
 import com.milla.KartingRMBackend.Repositories.RentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -20,12 +18,15 @@ import java.util.stream.Collectors;
 
 @Service
 public class RentService {
-    @Autowired
-    private RentRepository rentRepository;
-    @Autowired
-    private FeeTypeRepository feeTypeRepository;
-    @Autowired
-    private PeopleDiscountRepository peopleDiscountRepository;
+    private final RentRepository rentRepository;
+    private final FeeTypeRepository feeTypeRepository;
+    private final PeopleDiscountRepository peopleDiscountRepository;
+
+    public RentService(RentRepository rentRepository, FeeTypeRepository feeTypeRepository, PeopleDiscountRepository peopleDiscountRepository) {
+        this.rentRepository = rentRepository;
+        this.feeTypeRepository = feeTypeRepository;
+        this.peopleDiscountRepository = peopleDiscountRepository;
+    }
 
     //Getters
     public List<RentEntity> getAll(){
@@ -104,7 +105,7 @@ public class RentService {
                 .map(RentEntity::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-    public BigDecimal calculateTotalPriceForMonthByFeeTypeId(String month, int fee_type_id){
+    public BigDecimal calculateTotalPriceForMonthByFeeTypeId(String month, int feeTypeId){
         // Parse the month to YearMonth
         YearMonth yearMonth = YearMonth.parse(month); // e.g., "2025-01"
 
@@ -119,14 +120,14 @@ public class RentService {
         );
         //Filter by the fee_type_id
         List<RentEntity> filteredRents = rents.stream()
-                .filter(rent -> rent.getFeeTypeId() == fee_type_id)
+                .filter(rent -> rent.getFeeTypeId() == feeTypeId)
                 .toList();
         // Calculate the total price
         return filteredRents.stream()
                 .map(RentEntity::getTotalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-    public BigDecimal calculateTotalPriceForMonthByPeopleDiscountId(String month, int people_discount_id){
+    public BigDecimal calculateTotalPriceForMonthByPeopleDiscountId(String month, int peopleDiscountId){
         // Parse the month to YearMonth
         YearMonth yearMonth = YearMonth.parse(month); // e.g., "2025-01"
 
@@ -140,7 +141,7 @@ public class RentService {
                 endDate
         );
         //Filter by the people_discount_id
-        PeopleDiscountEntity peopleDiscount = peopleDiscountRepository.findById(people_discount_id).orElse(null);
+        PeopleDiscountEntity peopleDiscount = peopleDiscountRepository.findById(peopleDiscountId).orElse(null);
         List<RentEntity> filteredRents = rents.stream()
                 .filter(rent -> {
                     assert peopleDiscount != null;
@@ -155,14 +156,8 @@ public class RentService {
     //Booleano que checkea si un dia es fin de semana o festivo
     private boolean isWeekendOrHoliday(LocalDate date) {
         DayOfWeek day = date.getDayOfWeek();
-        return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY || isHoliday(date);
+        return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY;
     }
-    //Booleano que checkea si un dia es festivo, se puede customizar
-    private boolean isHoliday(LocalDate date) {
-        //Se aplicara el descuento a traves de ReceiptService, por lo que este metodo por si no es necesario
-        return false;
-    }
-
     //Funciones para calendar
     //Funcion que genera slots de tiempo para un dia, con una hora de apertura, cierre, y tiempo de intervalo
     private List<LocalTime> generateTimeSlots(LocalTime start, LocalTime end, int intervalMinutes) {

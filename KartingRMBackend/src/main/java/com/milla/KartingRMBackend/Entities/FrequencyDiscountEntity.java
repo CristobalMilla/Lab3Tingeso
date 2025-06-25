@@ -17,10 +17,12 @@ public class FrequencyDiscountEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "frequency_discount_id")
     private int frequencyDiscountId;
+    @Column(name = "category")
     private String category;
     @Column(name = "min_frequency")
     private int minFrequency;
     @Column(name = "max_frequency")
     private int maxFrequency;
+    @Column(name = "discount")
     private BigDecimal discount;
 }

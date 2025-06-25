@@ -18,7 +18,10 @@ public class BirthdayEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "birthday_id")
     private int birthdayId;
+    @Column(name = "name")
     private String name;
+    @Column(name = "date")
     private LocalDate date;
+    @Column(name = "discount")
     private BigDecimal discount;
 }

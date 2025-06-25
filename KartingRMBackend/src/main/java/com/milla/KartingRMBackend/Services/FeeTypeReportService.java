@@ -1,8 +1,6 @@
 package com.milla.KartingRMBackend.Services;
 
 import com.milla.KartingRMBackend.Entities.FeeTypeEntity;
-import com.milla.KartingRMBackend.Repositories.FeeTypeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -15,11 +13,13 @@ import java.util.Map;
 @Service
 public class FeeTypeReportService {
 
-    @Autowired
-    private FeeTypeService feeTypeService;
-    @Autowired
-    private RentService rentService;
+    private final FeeTypeService feeTypeService;
+    private final RentService rentService;
 
+    public FeeTypeReportService(FeeTypeService feeTypeService, RentService rentService) {
+        this.feeTypeService = feeTypeService;
+        this.rentService = rentService;
+    }
     //Primera funcion que obtiene una lista de meses entre 2 meses ingresados
     //Funciona con años
     private List<String> getMonthsBetween(String startMonth, String endMonth) {
@@ -97,8 +97,4 @@ public class FeeTypeReportService {
 
         return report;
     }
-
-
-
-
 }

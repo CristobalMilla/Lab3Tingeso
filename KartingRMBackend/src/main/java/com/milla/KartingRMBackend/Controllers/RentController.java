@@ -4,7 +4,6 @@ import com.milla.KartingRMBackend.Entities.FeeTypeEntity;
 import com.milla.KartingRMBackend.Entities.PeopleDiscountEntity;
 import com.milla.KartingRMBackend.Entities.RentEntity;
 import com.milla.KartingRMBackend.Services.RentService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,8 +16,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/rent")
 public class RentController {
-    @Autowired
-    RentService rentService;
+    private final RentService rentService;
+
+    public RentController(RentService rentService) {
+        this.rentService = rentService;
+    }
 
     //Getters
     @GetMapping("/all")

@@ -21,5 +21,6 @@ public class PeopleDiscountEntity {
     private int minPeople;
     @Column(name = "max_people")
     private int maxPeople;
+    @Column(name = "discount")
     private BigDecimal discount;
 }
