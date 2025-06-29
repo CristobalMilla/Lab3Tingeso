@@ -8,10 +8,9 @@ beforeEach(() => {
 
 // Mock IntersectionObserver for components that might use it
 class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
+  disconnect() { /* noop */ }
+  observe() { /* noop */ }
+  unobserve() { /* noop */ }
 }
 
 // @ts-expect-error - Global assignment for testing environment

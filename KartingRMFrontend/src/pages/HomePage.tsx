@@ -69,8 +69,8 @@ const HomePage: React.FC = () => {
         spacing={4}
         sx={{ mb: 6 }}
       >
-        {features.map((feature, index) => (
-          <Box key={index} sx={{ flex: 1 }}>
+        {features.map(feature => (
+          <Box key={feature.title} sx={{ flex: 1 }}>
             <Card
               sx={{
                 height: '100%',

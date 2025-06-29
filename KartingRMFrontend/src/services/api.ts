@@ -17,7 +17,7 @@ apiClient.interceptors.request.use(
     return config
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)))
   }
 )
 
@@ -28,7 +28,7 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error)
-    return Promise.reject(error)
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)))
   }
 )
 
