@@ -1,0 +1,56 @@
+Produccion
+{
+  "@emotion/react": "^11.14.0",           // CSS-in-JS for Material-UI styling
+  "@emotion/styled": "^11.14.1",          // Styled components for Material-UI
+  "@hookform/resolvers": "^5.1.1",        // Form validation resolvers for react-hook-form
+  "@mui/icons-material": "^7.1.2",        // Material Design icons (Nielsen Heuristic #2)
+  "@mui/lab": "^7.0.0-beta.14",          // Advanced Material-UI components
+  "@mui/material": "^7.1.2",             // Core Material-UI components (Nielsen Heuristics #4, #8)
+  "@tanstack/react-query": "^5.81.5",    // Data fetching with loading states (Nielsen Heuristic #1)
+  "@tanstack/react-query-devtools": "^5.81.5", // Development tools for React Query
+  "axios": "^1.10.0",                    // HTTP client for Spring Boot backend communication
+  "clsx": "^2.1.1",                      // Conditional CSS classes utility
+  "date-fns": "^4.1.0",                  // Date manipulation and formatting
+  "lodash": "^4.17.21",                  // Utility functions for data manipulation
+  "react": "^18.3.1",                    // Core React library
+  "react-dom": "^18.3.1",                // React DOM rendering
+  "react-helmet-async": "^2.0.5",        // SEO and metadata management
+  "react-hook-form": "^7.59.0",          // Form handling (Nielsen Heuristics #5, #9)
+  "react-hot-toast": "^2.5.2",           // User feedback notifications (Nielsen Heuristic #1)
+  "react-router-dom": "^7.6.3",          // Navigation and routing (Nielsen Heuristic #3)
+  "yup": "^1.6.1"                        // Schema validation for forms (Nielsen Heuristic #5)
+}
+Desarrollo
+{
+  "@testing-library/jest-dom": "^6.6.3",     // Testing utilities for DOM assertions
+  "@testing-library/react": "^16.3.0",       // React component testing (Selenium-compatible)
+  "@testing-library/user-event": "^14.6.1",  // User interaction simulation
+  "@types/lodash": "^4.17.19",               // TypeScript definitions for lodash
+  "@vitest/ui": "^3.2.4",                    // Visual testing interface
+  "eslint": "^9.25.0",                       // Code linting (SonarQube preparation)
+  "vitest": "^3.2.4",                        // Testing framework (Jest alternative)
+  "jsdom": "included"                         // DOM simulation for testing
+}
+
+1. Functionality Testing (Selenium + 50% Automation)
+	@testing-library/react: React component testing that integrates seamlessly with Selenium
+	@testing-library/user-event: Simulates real user interactions for automation
+	vitest: Fast test runner that can generate reports for automated testing metrics
+	jsdom: DOM simulation that works with both unit tests and Selenium WebDriver
+2. Usability (Nielsen Heuristics + SUS 75+)
+	@mui/material: Provides consistent, accessible components following Material Design principles
+	@mui/icons-material: Standard icons for better visual communication (Heuristic #2)
+	react-hook-form + yup: Form validation with clear error messages (Heuristics #5, #9)
+	react-hot-toast: Immediate feedback for user actions (Heuristic #1)
+	react-router-dom: Consistent navigation patterns (Heuristics #3, #4)
+	@tanstack/react-query: Loading states and data management (Heuristic #1)
+3. Performance (JMeter Backend Testing)
+	axios: Efficient HTTP client for Spring Boot API communication
+	@tanstack/react-query: Caching and background updates reduce server load
+	Code splitting configuration: Reduces initial bundle size for faster loading
+	date-fns: Lightweight date library (smaller than moment.js)
+4. Maintainability (SonarQube <5% + ESLint)
+	TypeScript: Static typing reduces bugs and improves code quality
+	ESLint: Code linting with accessibility and import organization rules
+	Organized folder structure: Clean separation of concerns
+	lodash: Consistent utility functions reduce custom code complexity
