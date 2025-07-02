@@ -1,0 +1,3 @@
+Sonar:
+	Front:
+		mvn sonar:sonar
