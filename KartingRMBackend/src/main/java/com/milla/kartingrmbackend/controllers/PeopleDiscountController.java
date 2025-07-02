@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/peopleDiscount")
+@RequestMapping("/api/peopleDiscount")
 public class PeopleDiscountController {
     private final PeopleDiscountService peopleDiscountService;
 

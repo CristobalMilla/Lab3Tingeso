@@ -14,7 +14,7 @@ import java.time.LocalTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/rent")
+@RequestMapping("/api/rent")
 public class RentController {
     private final RentService rentService;
 

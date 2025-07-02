@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/receipt")
+@RequestMapping("/api/receipt")
 public class ReceiptController {
     private final ReceiptService receiptService;
 
