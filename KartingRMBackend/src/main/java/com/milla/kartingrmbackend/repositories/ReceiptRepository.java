@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface ReceiptRepository extends JpaRepository<ReceiptEntity, Integer> {
-    List<ReceiptEntity> getReceiptsByRentId(int rentId);
+    List<ReceiptEntity> getReceiptsByRentId(Integer rentId);
 }

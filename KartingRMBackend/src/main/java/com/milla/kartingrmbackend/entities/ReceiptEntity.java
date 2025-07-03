@@ -16,9 +16,9 @@ public class ReceiptEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "receipt_id")
-    private int receiptId;
+    private Integer receiptId;
     @Column(name = "rent_id")
-    private int rentId;
+    private Integer rentId;
     @Column(name = "sub_client_name")
     private String subClientName;
     @Column(name = "sub_client_email")
@@ -36,7 +36,7 @@ public class ReceiptEntity {
     @Column(name = "final_price")
     private BigDecimal finalPrice;
 
-    public ReceiptEntity(int receiptId, int rentId, String subClientName, String subClientEmail) {
+    public ReceiptEntity(Integer receiptId, Integer rentId, String subClientName, String subClientEmail) {
         this.receiptId = receiptId;
         this.rentId = rentId;
         this.subClientName = subClientName;

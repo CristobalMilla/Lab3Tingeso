@@ -11,6 +11,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -38,11 +39,11 @@ public class ReceiptService {
     public List<ReceiptEntity> getAll(){
         return receiptRepository.findAll();
     }
-    public ReceiptEntity getReceiptById(int id){
+    public ReceiptEntity getReceiptById(Integer id){
         return receiptRepository.findById(id).orElse(null);
     }
     //Get de la lista de receipts de una sola renta por su id
-    public List<ReceiptEntity> getReceiptsByRentId(int id){
+    public List<ReceiptEntity> getReceiptsByRentId(Integer id){
         return receiptRepository.getReceiptsByRentId(id);
     }
     //Save
@@ -55,25 +56,25 @@ public class ReceiptService {
     }
 
     //Get para obtener la tarifa correspondiente al recibo, segun su renta
-    public BigDecimal getFeePriceByReceiptId(int id){
+    public BigDecimal getFeePriceByReceiptId(Integer id){
         ReceiptEntity receipt = receiptRepository.findById(id).orElse(null);
         if(receipt == null){
             return null;
         }
         else {
-            int rentId = receipt.getRentId();
+            Integer rentId = receipt.getRentId();
             FeeTypeEntity feeType = rentService.getFeeTypeByRentId(rentId);
             return feeType.getPrice();
         }
     }
     //Get para obtener el people_discount price del recibo, segun su renta
-    public BigDecimal getPeopleDiscountPriceByReceiptId(int id){
+    public BigDecimal getPeopleDiscountPriceByReceiptId(Integer id){
         ReceiptEntity receipt = receiptRepository.findById(id).orElse(null);
         if(receipt == null){
             return null;
         }
         else {
-            int rentId = receipt.getRentId();
+            Integer rentId = receipt.getRentId();
             return rentService.getPeopleDiscountByRentId(rentId).getDiscount();
         }
     }
@@ -84,18 +85,18 @@ public class ReceiptService {
     //Este calculo se realiza como transaccion atomica
 
     //Funcion que obtiene el valor del la tarifa base
-    public BigDecimal calculateBaseTariff(int rentId) {
+    public BigDecimal calculateBaseTariff(Integer rentId) {
         return rentService.getFeeTypeByRentId(rentId).getPrice();
     }
     //Funcion que obtiene el descuento de gente segun renta
-    public BigDecimal calculatePeopleDiscount(int rentId) {
+    public BigDecimal calculatePeopleDiscount(Integer rentId) {
         return rentService.getPeopleDiscountByRentId(rentId).getDiscount();
     }
     //Funcion que calcula el descuento especial
     //Se calculan y obtienen, si existen, descuento por frecuencia, cumpleaños (Se asume del cliente principal, se puede cambiar) y por festivo
     //Se utiliza el numero menor obtenido, osea, el mejor descuento entre los 3
     //Se utiliza LocalDate.now(), por lo que se obtiene la fecha de hoy desde la maquina. Esto puede generar discrepancias dependiendo de desde donde se este corriendo la aplicacion
-    public BigDecimal calculateSpecialDiscount(int rentId) {
+    public BigDecimal calculateSpecialDiscount(Integer rentId) {
         RentEntity rent = rentService.getById(rentId);
         int peopleAmount = rent.getPeopleNumber();
 
@@ -129,7 +130,7 @@ public class ReceiptService {
     //Funcion que calcula los distintos campos de un recibo creado
     //Se asume que descuento por cantidad de personas y el especial son multiplicativos
     private ReceiptEntity createFullReceipt(ReceiptEntity receipt) {
-        int rentId = receipt.getRentId();
+        Integer rentId = receipt.getRentId();
         //Calculo de los atributos por separados
         BigDecimal baseTariff = calculateBaseTariff(rentId);
         BigDecimal peopleDiscount = calculatePeopleDiscount(rentId);
@@ -192,53 +193,77 @@ public class ReceiptService {
     public RentPreviewDTO calculateRentPreview(RentEntity rent, List<String> subClients) {
         // Validate input
         validateRentData(rent);
-
+        // 🔧 IMPORTANT: Clear the rent ID to ensure it's null for preview
+        rent.setRentId(null);
         // Set rent code if not provided
         if (rent.getRentCode() == null || rent.getRentCode().isEmpty()) {
             rent.setRentCode(generateRentCode(rent));
         }
-
-        // Calculate receipts WITHOUT saving and WITHOUT setting rentId
+        // Calculate receipts WITHOUT saving and WITHOUT setting any IDs
         List<ReceiptEntity> calculatedReceipts = subClients.stream()
                 .map(subClient -> {
                     ReceiptEntity receipt = new ReceiptEntity();
-                    // Don't set rentId - will be set when saving
+                    // 🔧 IMPORTANT: Explicitly set IDs to null
+                    receipt.setReceiptId(null);
+                    receipt.setRentId(null);
                     receipt.setSubClientName(subClient);
-                    return calculateReceiptFields(receipt, rent); // Calculate all fields
+                    return calculateReceiptFields(receipt, rent);
                 })
                 .toList();
-
         // Calculate total price
         BigDecimal totalPrice = calculatedReceipts.stream()
                 .map(ReceiptEntity::getFinalPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         rent.setTotalPrice(totalPrice);
-
         return new RentPreviewDTO(rent, calculatedReceipts);
     }
 
     @Transactional
     public RentEntity saveRentFromPreview(RentPreviewDTO preview) {
-        if (preview.getRent() == null || preview.getReceipts() == null || preview.getReceipts().isEmpty()) {
-            throw new IllegalArgumentException("Invalid preview data");
-        }
+        // 🔧 Create a NEW RentEntity instead of modifying the existing one
+        RentEntity originalRent = preview.getRent();
+        RentEntity rentToSave = new RentEntity();
 
+        // Copy all fields EXCEPT the ID
+        rentToSave.setRentId(null); // Explicitly null
+        rentToSave.setRentCode(originalRent.getRentCode());
+        rentToSave.setRentDate(originalRent.getRentDate());
+        rentToSave.setRentTime(originalRent.getRentTime());
+        rentToSave.setFeeTypeId(originalRent.getFeeTypeId());
+        rentToSave.setPeopleNumber(originalRent.getPeopleNumber());
+        rentToSave.setMainClient(originalRent.getMainClient());
+        rentToSave.setTotalPrice(originalRent.getTotalPrice());
         // Save the rent (gets auto-generated rentId)
-        RentEntity savedRent = rentService.save(preview.getRent());
-
+        RentEntity savedRent = rentService.save(rentToSave);
         // Save receipts with the generated rentId
-        preview.getReceipts().forEach(receipt -> {
-            receipt.setRentId(savedRent.getRentId());
-            receiptRepository.save(receipt);
+        preview.getReceipts().forEach(originalReceipt -> {
+            ReceiptEntity receiptToSave = new ReceiptEntity();
+
+            // Copy all fields EXCEPT the IDs
+            receiptToSave.setReceiptId(null); // Explicitly null
+            receiptToSave.setRentId(savedRent.getRentId()); // Use the new rent ID
+            receiptToSave.setSubClientName(originalReceipt.getSubClientName());
+            receiptToSave.setBaseTariff(originalReceipt.getBaseTariff());
+            receiptToSave.setSizeDiscount(originalReceipt.getSizeDiscount());
+            receiptToSave.setSpecialDiscount(originalReceipt.getSpecialDiscount());
+            receiptToSave.setAggregatedPrice(originalReceipt.getAggregatedPrice());
+            receiptToSave.setIvaPrice(originalReceipt.getIvaPrice());
+            receiptToSave.setFinalPrice(originalReceipt.getFinalPrice());
+            receiptRepository.save(receiptToSave);
         });
 
         return savedRent;
     }
 
-    // Extract calculation logic to reusable method
     private ReceiptEntity calculateReceiptFields(ReceiptEntity receipt, RentEntity rent) {
-        // Same calculation logic as before but don't save
-        BigDecimal baseTariff = feeTypeService.getFeeTypeById(rent.getFeeTypeId()).getPrice();
+        // Get the TOTAL fee type price for the reservation
+        BigDecimal totalFeeTypePrice = feeTypeService.getFeeTypeById(rent.getFeeTypeId()).getPrice();
+        // Calculate base tariff PER PERSON (total price divided by number of people)
+        BigDecimal baseTariff = totalFeeTypePrice.divide(
+                BigDecimal.valueOf(rent.getPeopleNumber()),
+                2,
+                RoundingMode.HALF_UP
+        );
         BigDecimal peopleDiscount = peopleDiscountService.findByPeopleAmount(rent.getPeopleNumber()).getDiscount();
         BigDecimal specialDiscount = calculateSpecialDiscountForRent(rent);
 
@@ -252,8 +277,7 @@ public class ReceiptService {
         receipt.setAggregatedPrice(aggregatedPrice);
         receipt.setIvaPrice(ivaPrice);
         receipt.setFinalPrice(finalPrice);
-
-        return receipt; // Return calculated receipt (not saved)
+        return receipt;
     }
 
     private String generateRentCode(RentEntity rent) {

@@ -32,7 +32,7 @@ public class RentService {
     public List<RentEntity> getAll(){
         return rentRepository.findAll();
     }
-    public RentEntity getById(int id){
+    public RentEntity getById(Integer id){
         return rentRepository.findById(id).orElse(null);
     }
     //Get la lista de rentas de un solo cliente
@@ -52,7 +52,7 @@ public class RentService {
         return rentRepository.save(rent);
     }
     //Obtener el fee type de la renta segun su id
-    public FeeTypeEntity getFeeTypeByRentId(int id){
+    public FeeTypeEntity getFeeTypeByRentId(Integer id){
         RentEntity rent = rentRepository.findById(id).orElse(null);
         if (rent == null) {return null;}
         else {
@@ -61,7 +61,7 @@ public class RentService {
         }
     }
     //Obtener el people_discount de la renta segun su id
-    public PeopleDiscountEntity getPeopleDiscountByRentId(int id){
+    public PeopleDiscountEntity getPeopleDiscountByRentId(Integer id){
         RentEntity rent = rentRepository.findById(id).orElse(null);
         if (rent == null) {return null;}
         else {
@@ -70,7 +70,7 @@ public class RentService {
         }
     }
     //Obtener la duracion de la renta segun su fee_type, segun el id de la renta
-    public int getDurationByRentId(int id){
+    public int getDurationByRentId(Integer id){
         RentEntity rent = rentRepository.findById(id).orElse(null);
         if (rent == null) {return 0;}
         else {
@@ -197,7 +197,7 @@ public class RentService {
         // Filter available slots
         return allSlots.stream()
                 .filter(slot -> !unavailableSlots.contains(slot))
-                .collect(Collectors.toList());
+                .toList();
     }
     //Funcion que filtra la lista de slots para solo devolver slots de corrido que puedan contener la duracion de la nueva renta
     public List<LocalTime> filterSlotsForDuration(List<LocalTime> openSlots, int requiredDuration, int intervalMinutes) {

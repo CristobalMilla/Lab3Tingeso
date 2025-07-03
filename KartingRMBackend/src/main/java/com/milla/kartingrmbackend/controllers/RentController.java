@@ -34,7 +34,7 @@ public class RentController {
         }
     }
     @GetMapping("/{id}")
-    public ResponseEntity<RentEntity> getRentById(@PathVariable int id) {
+    public ResponseEntity<RentEntity> getRentById(@PathVariable Integer id) {
         RentEntity rent = rentService.getById(id);
         return ResponseEntity.ok(rent);
     }
@@ -58,7 +58,7 @@ public class RentController {
     }
     @GetMapping("/feeTypeByRentId/{id}")
     //Obtener el fee type de la renta segun su id
-    public ResponseEntity<FeeTypeEntity> getFeeTypeByRentId(@PathVariable("id") int rentId) {
+    public ResponseEntity<FeeTypeEntity> getFeeTypeByRentId(@PathVariable("id") Integer rentId) {
         FeeTypeEntity feeType = rentService.getFeeTypeByRentId(rentId);
         if (feeType == null) {
             return ResponseEntity.notFound().build();
@@ -67,7 +67,7 @@ public class RentController {
     }
     //Obtener el people_discount de la renta segun su id
     @GetMapping("/peopleDiscountByRentId/{id}")
-    public ResponseEntity<PeopleDiscountEntity> getPeopleDiscountByRentId(@PathVariable("id") int rentId) {
+    public ResponseEntity<PeopleDiscountEntity> getPeopleDiscountByRentId(@PathVariable("id") Integer rentId) {
         PeopleDiscountEntity peopleDiscount = rentService.getPeopleDiscountByRentId(rentId);
         if (peopleDiscount == null) {
             return ResponseEntity.notFound().build();
@@ -76,7 +76,7 @@ public class RentController {
     }
     //Obtener la duracion de la renta segun su fee_type, segun el id de la renta
     @GetMapping("/getRentDurationById/{id}")
-    public ResponseEntity<Integer> getRentDurationById(@PathVariable("id") int rentId) {
+    public ResponseEntity<Integer> getRentDurationById(@PathVariable("id") Integer rentId) {
         int duration = rentService.getDurationByRentId(rentId);
         if (duration == 0) {
             return ResponseEntity.notFound().build();

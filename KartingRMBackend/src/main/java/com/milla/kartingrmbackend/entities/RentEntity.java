@@ -18,7 +18,7 @@ public class RentEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "rent_id")
-    private int rentId;
+    private Integer rentId;
     @Column(name = "rent_code")
     private String rentCode;
     @Column(name = "rent_date")
@@ -34,7 +34,7 @@ public class RentEntity {
     @Column(name = "total_price")
     private BigDecimal totalPrice;
 
-    public RentEntity(int rentId, String rentCode, LocalDate rentDate, LocalTime rentTime, int feeTypeId, int peopleNumber, String mainClient) {
+    public RentEntity(Integer rentId, String rentCode, LocalDate rentDate, LocalTime rentTime, int feeTypeId, int peopleNumber, String mainClient) {
         this.rentId = rentId;
         this.rentCode = rentCode;
         this.rentDate = rentDate;
