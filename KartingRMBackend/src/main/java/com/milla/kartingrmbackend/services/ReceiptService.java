@@ -1,5 +1,6 @@
 package com.milla.kartingrmbackend.services;
 
+import com.milla.kartingrmbackend.dto.RentPreviewDTO;
 import com.milla.kartingrmbackend.entities.FeeTypeEntity;
 import com.milla.kartingrmbackend.entities.FrequencyDiscountEntity;
 import com.milla.kartingrmbackend.entities.ReceiptEntity;
@@ -10,6 +11,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -19,13 +21,17 @@ public class ReceiptService {
     private final FrequencyDiscountRepository frequencyDiscountRepository;
     private final BirthdayService birthdayService;
     private final HolidayService holidayService;
+    private final FeeTypeService feeTypeService;
+    private final PeopleDiscountService peopleDiscountService;
 
-    public ReceiptService(ReceiptRepository receiptRepository, RentService rentService, FrequencyDiscountRepository frequencyDiscountRepository, BirthdayService birthdayService, HolidayService holidayService) {
+    public ReceiptService(ReceiptRepository receiptRepository, RentService rentService, FrequencyDiscountRepository frequencyDiscountRepository, BirthdayService birthdayService, HolidayService holidayService, FeeTypeService feeTypeService, PeopleDiscountService peopleDiscountService) {
         this.receiptRepository = receiptRepository;
         this.rentService = rentService;
         this.frequencyDiscountRepository = frequencyDiscountRepository;
         this.birthdayService = birthdayService;
         this.holidayService = holidayService;
+        this.feeTypeService = feeTypeService;
+        this.peopleDiscountService = peopleDiscountService;
     }
 
     //Getters
@@ -179,5 +185,109 @@ public class ReceiptService {
         if (rent.getFeeTypeId() == 0 || rent.getMainClient() == null) {
             throw new IllegalArgumentException("Mandatory fields are missing");
         }
+    }
+
+
+    // Service methods
+    public RentPreviewDTO calculateRentPreview(RentEntity rent, List<String> subClients) {
+        // Validate input
+        validateRentData(rent);
+
+        // Set rent code if not provided
+        if (rent.getRentCode() == null || rent.getRentCode().isEmpty()) {
+            rent.setRentCode(generateRentCode(rent));
+        }
+
+        // Calculate receipts WITHOUT saving and WITHOUT setting rentId
+        List<ReceiptEntity> calculatedReceipts = subClients.stream()
+                .map(subClient -> {
+                    ReceiptEntity receipt = new ReceiptEntity();
+                    // Don't set rentId - will be set when saving
+                    receipt.setSubClientName(subClient);
+                    return calculateReceiptFields(receipt, rent); // Calculate all fields
+                })
+                .toList();
+
+        // Calculate total price
+        BigDecimal totalPrice = calculatedReceipts.stream()
+                .map(ReceiptEntity::getFinalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        rent.setTotalPrice(totalPrice);
+
+        return new RentPreviewDTO(rent, calculatedReceipts);
+    }
+
+    @Transactional
+    public RentEntity saveRentFromPreview(RentPreviewDTO preview) {
+        if (preview.getRent() == null || preview.getReceipts() == null || preview.getReceipts().isEmpty()) {
+            throw new IllegalArgumentException("Invalid preview data");
+        }
+
+        // Save the rent (gets auto-generated rentId)
+        RentEntity savedRent = rentService.save(preview.getRent());
+
+        // Save receipts with the generated rentId
+        preview.getReceipts().forEach(receipt -> {
+            receipt.setRentId(savedRent.getRentId());
+            receiptRepository.save(receipt);
+        });
+
+        return savedRent;
+    }
+
+    // Extract calculation logic to reusable method
+    private ReceiptEntity calculateReceiptFields(ReceiptEntity receipt, RentEntity rent) {
+        // Same calculation logic as before but don't save
+        BigDecimal baseTariff = feeTypeService.getFeeTypeById(rent.getFeeTypeId()).getPrice();
+        BigDecimal peopleDiscount = peopleDiscountService.findByPeopleAmount(rent.getPeopleNumber()).getDiscount();
+        BigDecimal specialDiscount = calculateSpecialDiscountForRent(rent);
+
+        BigDecimal aggregatedPrice = baseTariff.multiply(peopleDiscount).multiply(specialDiscount);
+        BigDecimal ivaPrice = aggregatedPrice.multiply(BigDecimal.valueOf(0.19));
+        BigDecimal finalPrice = aggregatedPrice.add(ivaPrice);
+
+        receipt.setBaseTariff(baseTariff);
+        receipt.setSizeDiscount(peopleDiscount);
+        receipt.setSpecialDiscount(specialDiscount);
+        receipt.setAggregatedPrice(aggregatedPrice);
+        receipt.setIvaPrice(ivaPrice);
+        receipt.setFinalPrice(finalPrice);
+
+        return receipt; // Return calculated receipt (not saved)
+    }
+
+    private String generateRentCode(RentEntity rent) {
+        if (rent.getMainClient() == null || rent.getRentDate() == null) {
+            throw new IllegalArgumentException("Main client and rent date are required for code generation");
+        }
+
+        String clientName = rent.getMainClient().replaceAll("\\s+", "").toLowerCase();
+        String dateStr = rent.getRentDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        return clientName + dateStr;
+    }
+
+    // Add new method that accepts RentEntity directly
+    public BigDecimal calculateSpecialDiscountForRent(RentEntity rent) {
+        int peopleAmount = rent.getPeopleNumber();
+
+        // Get frequency discount
+        FrequencyDiscountEntity frequencyDiscount = frequencyDiscountRepository.findByClientFrequency(peopleAmount);
+        BigDecimal fDiscount = (frequencyDiscount == null) ? BigDecimal.ONE : frequencyDiscount.getDiscount();
+
+        // Check if it's the client's birthday
+        BigDecimal bDiscount = BigDecimal.ONE;
+        boolean isItsBirthday = birthdayService.isItsBirthday(rent.getMainClient(), rent.getRentDate());
+        if (isItsBirthday) {
+            BigDecimal birthdayDiscount = birthdayService.findBirthdayDiscountByName(rent.getMainClient());
+            if (birthdayDiscount != null) {
+                bDiscount = birthdayDiscount;
+            }
+        }
+
+        // Get holiday discount
+        BigDecimal hDiscount = holidayService.findHolidayDiscountByDate(rent.getRentDate());
+
+        // Return the minimum discount (maximum benefit for the client)
+        return fDiscount.min(hDiscount).min(bDiscount);
     }
 }

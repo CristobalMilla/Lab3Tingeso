@@ -1,5 +1,6 @@
 package com.milla.kartingrmbackend.controllers;
 
+import com.milla.kartingrmbackend.dto.RentPreviewDTO;
 import com.milla.kartingrmbackend.dto.RentRequestDTO;
 import com.milla.kartingrmbackend.entities.ReceiptEntity;
 import com.milla.kartingrmbackend.entities.RentEntity;
@@ -77,6 +78,19 @@ public class ReceiptController {
     public ResponseEntity<RentEntity> saveCalc(@RequestBody RentRequestDTO request) {
         RentEntity savedCalcReceipt = receiptService.saveRentWithReceipts(request.getRent(), request.getSubClients());
         return ResponseEntity.ok(savedCalcReceipt);
+    }
+
+    @PostMapping("/calculatePreview")
+    public ResponseEntity<RentPreviewDTO> calculatePreview(@RequestBody RentRequestDTO request) {
+        RentPreviewDTO preview = receiptService.calculateRentPreview(request.getRent(), request.getSubClients());
+        return ResponseEntity.ok(preview);
+    }
+
+    // Updated save endpoint to accept preview data
+    @PostMapping("/saveFromPreview")
+    public ResponseEntity<RentEntity> saveFromPreview(@RequestBody RentPreviewDTO preview) {
+        RentEntity savedRent = receiptService.saveRentFromPreview(preview);
+        return ResponseEntity.ok(savedRent);
     }
 
 }
