@@ -109,41 +109,71 @@ const ReservaPage: React.FC = () => {
     }
   })
 
-// Remove this entire useEffect:
-// useEffect(() => {
-//   if (peopleNumber > 0) {
-//     const newSubClients = Array(peopleNumber).fill('').map((_, index) => {
-//       if (index === 0) {
-//         return mainClient
-//       }
-//       return subClients[index] || ''
-//     })
-//     setSubClients(newSubClients)
-//   }
-// }, [peopleNumber, mainClient, subClients])
-
-// Add these handler functions after your state declarations:
-const handlePeopleNumberChange = (newPeopleNumber: number) => {
-  setPeopleNumber(newPeopleNumber)
-  
-  const newSubClients = Array(newPeopleNumber).fill('').map((_, index) => {
-    if (index === 0) {
-      return mainClient
-    }
-    return subClients[index] || ''
-  })
-  setSubClients(newSubClients)
-}
-
-const handleMainClientChange = (newMainClient: string) => {
-  setMainClient(newMainClient)
-  
-  if (subClients.length > 0) {
-    const newSubClients = [...subClients]
-    newSubClients[0] = newMainClient
+  // Handler functions
+  const handlePeopleNumberChange = (newPeopleNumber: number) => {
+    setPeopleNumber(newPeopleNumber)
+    
+    const newSubClients = Array(newPeopleNumber).fill('').map((_, index) => {
+      if (index === 0) {
+        return mainClient
+      }
+      return subClients[index] || ''
+    })
     setSubClients(newSubClients)
   }
-}
+
+  const handleMainClientChange = (newMainClient: string) => {
+    setMainClient(newMainClient)
+    
+    if (subClients.length > 0) {
+      const newSubClients = [...subClients]
+      newSubClients[0] = newMainClient
+      setSubClients(newSubClients)
+    }
+  }
+
+  // Helper functions
+  const formatDateForDisplay = (dateInput: string | number[]): string => {
+    try {
+      let year, month, day;
+      if (typeof dateInput === 'string') {
+        const parts = dateInput.split('-').map(num => parseInt(num, 10));
+        if (parts.length !== 3) return 'No disponible';
+        [year, month, day] = parts;
+      } else if (Array.isArray(dateInput) && dateInput.length === 3) {
+        [year, month, day] = dateInput;
+      } else {
+        return 'No disponible';
+      }
+      
+      const date = new Date(year, month - 1, day); // month is 0-based in JS
+      
+      if (isNaN(date.getTime())) return 'Fecha inválida';
+      
+      return format(date, 'dd/MM/yyyy', { locale: es });
+    } catch {
+      return 'Error al formatear fecha';
+    }
+  }
+
+  const formatTimeForDisplay = (timeInput: string | number[]): string => {
+      try {
+        let hour: number, minute: number;
+        if (typeof timeInput === 'string') {
+          const parts = timeInput.split(':').map(num => parseInt(num, 10));
+          if (parts.length < 2) return 'No disponible';
+          [hour, minute] = parts;
+        } else if (Array.isArray(timeInput) && timeInput.length >= 2) {
+          [hour, minute] = timeInput;
+        } else {
+          return 'No disponible';
+        }
+  
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      } catch {
+        return 'Error al formatear hora';
+      }
+    }
 
   // Generate rent code
   const generateRentCode = (): string => {
@@ -206,17 +236,11 @@ const handleMainClientChange = (newMainClient: string) => {
     calculatePreviewMutation.mutate(request)
   }
 
-const handleConfirmReservation = async () => {
-  if (previewData) {
-    console.log('🔍 DEBUG: Preview data before saving:', previewData)
-    console.log('🔍 DEBUG: Rent object:', previewData.rent)
-    console.log('🔍 DEBUG: Rent ID:', previewData.rent.rentId)
-    console.log('🔍 DEBUG: Receipt objects:', previewData.receipts)
-    console.log('🔍 DEBUG: Receipt IDs:', previewData.receipts.map(r => ({ receiptId: r.receiptId, rentId: r.rentId })))
-    
-    saveReservationMutation.mutate(previewData)
+  const handleConfirmReservation = async () => {
+    if (previewData) {
+      saveReservationMutation.mutate(previewData)
+    }
   }
-}
 
   // Format currency
   const formatCurrency = (amount: number): string => {
@@ -305,15 +329,34 @@ const handleConfirmReservation = async () => {
                   <DatePicker
                     label="Fecha de la reserva"
                     value={selectedDate}
-                    onChange={(date: React.SetStateAction<Date | null>) => {
+                    onChange={(date) => {
                       setSelectedDate(date)
                       setSelectedTime('') // Reset time when date changes
                     }}
-                    shouldDisableDate={(date: string | number | Date) => isBefore(date, startOfDay(new Date()))}
+                    shouldDisableDate={(date) => isBefore(date, startOfDay(new Date()))}
                     slotProps={{ 
                       textField: { 
                         fullWidth: true,
-                        helperText: 'Solo fechas futuras'
+                        helperText: 'Solo fechas futuras',
+                        // Make the entire input clickable
+                        onClick: (event) => {
+                          // Prevent default and trigger the DatePicker to open
+                          event.preventDefault()
+                          const input = event.currentTarget
+                          const datePicker = input.closest('.MuiFormControl-root')
+                          const calendarButton = datePicker?.querySelector('[aria-label="Choose date"]')
+                          if (calendarButton) {
+                            (calendarButton as HTMLElement).click()
+                          }
+                        },
+                        sx: {
+                          '& .MuiInputBase-input': {
+                            cursor: 'pointer', // Show pointer cursor on hover
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            cursor: 'pointer', // Show pointer cursor on the entire input
+                          }
+                        }
                       } 
                     }}
                   />
@@ -360,41 +403,40 @@ const handleConfirmReservation = async () => {
           </Box>
         )
 
-      // Then update the TextField onChange handlers in case 2:
-case 2: // Client Information  
-  return (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-        <PersonIcon /> Información del cliente principal
-      </Typography>
-      
-      <Stack spacing={3}>
-        <TextField
-          fullWidth
-          label="Nombre del cliente principal"
-          value={mainClient}
-          onChange={(e) => handleMainClientChange(e.target.value)}
-          placeholder="Nombre y apellido"
-          helperText="Mínimo 2 caracteres. Este será el responsable de la reserva."
-        />
-        
-        <TextField
-          fullWidth
-          type="number"
-          label="Número de personas"
-          value={peopleNumber}
-          onChange={(e) => handlePeopleNumberChange(Math.max(1, Math.min(15, parseInt(e.target.value) || 1)))}
-          inputProps={{ min: 1, max: 15 }}
-          helperText="Entre 1 y 15 personas"
-          sx={{ maxWidth: 300 }}
-        />
-      </Stack>
+      case 2: // Client Information  
+        return (
+          <Box>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <PersonIcon /> Información del cliente principal
+            </Typography>
+            
+            <Stack spacing={3}>
+              <TextField
+                fullWidth
+                label="Nombre del cliente principal"
+                value={mainClient}
+                onChange={(e) => handleMainClientChange(e.target.value)}
+                placeholder="Nombre y apellido"
+                helperText="Mínimo 2 caracteres. Este será el responsable de la reserva."
+              />
+              
+              <TextField
+                fullWidth
+                type="number"
+                label="Número de personas"
+                value={peopleNumber}
+                onChange={(e) => handlePeopleNumberChange(Math.max(1, Math.min(15, parseInt(e.target.value) || 1)))}
+                inputProps={{ min: 1, max: 15 }}
+                helperText="Entre 1 y 15 personas"
+                sx={{ maxWidth: 300 }}
+              />
+            </Stack>
 
-      <Alert severity="info" sx={{ mt: 3 }}>
-        El cliente principal será responsable del pago y recibirá la confirmación de la reserva.
-      </Alert>
-    </Box>
-  )
+            <Alert severity="info" sx={{ mt: 3 }}>
+              El cliente principal será responsable del pago y recibirá la confirmación de la reserva.
+            </Alert>
+          </Box>
+        )
 
       case 3: // Subclient Names
         return (
@@ -628,31 +670,10 @@ case 2: // Client Information
                     <strong>Cliente:</strong> {saveReservationMutation.data.mainClient}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Fecha:</strong> {(() => {
-                      // Format the date string (yyyy-MM-dd) to a readable format
-                      const dateStr = saveReservationMutation.data.rentDate
-                      if (dateStr) {
-                        const date = new Date(dateStr + 'T00:00:00') // Add time to avoid timezone issues
-                        return format(date, 'dd/MM/yyyy', { locale: es })
-                      }
-                      return dateStr
-                    })()}
+                    <strong>Fecha:</strong> {formatDateForDisplay(saveReservationMutation.data.rentDate)}
                   </Typography>
                   <Typography variant="body2">
-                    <strong>Hora:</strong> {(() => {
-                      // Format the time string (HH:mm or HHmm) to a readable format
-                      const timeStr = saveReservationMutation.data.rentTime
-                      if (timeStr) {
-                        // Handle both "HH:mm" and "HHmm" formats
-                        if (timeStr.includes(':')) {
-                          return timeStr // Already formatted
-                        } else if (timeStr.length === 4) {
-                          // Convert "1330" to "13:30"
-                          return `${timeStr.slice(0, 2)}:${timeStr.slice(2)}`
-                        }
-                      }
-                      return timeStr
-                    })()}
+                    <strong>Hora:</strong> {formatTimeForDisplay(saveReservationMutation.data.rentTime)}
                   </Typography>
                   <Typography variant="h6" color="primary" sx={{ mt: 2 }}>
                     Total: {formatCurrency(saveReservationMutation.data.totalPrice || 0)}
