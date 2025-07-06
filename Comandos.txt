@@ -13,3 +13,9 @@ SELECT setval('receipt_receipt_id_seq', COALESCE((SELECT MAX(receipt_id) FROM re
 SELECT 'rent_seq' as seq_name, last_value FROM rent_rent_id_seq
 UNION ALL
 SELECT 'receipt_seq' as seq_name, last_value FROM receipt_receipt_id_seq;
+
+
+Reset de rents/receipt:
+
+DELETE FROM receipt WHERE receipt_id >68;
+DELETE FROM rent WHERE rent_id >10;
