@@ -257,13 +257,8 @@ public class ReceiptService {
 
     private ReceiptEntity calculateReceiptFields(ReceiptEntity receipt, RentEntity rent) {
         // Get the TOTAL fee type price for the reservation
-        BigDecimal totalFeeTypePrice = feeTypeService.getFeeTypeById(rent.getFeeTypeId()).getPrice();
         // Calculate base tariff PER PERSON (total price divided by number of people)
-        BigDecimal baseTariff = totalFeeTypePrice.divide(
-                BigDecimal.valueOf(rent.getPeopleNumber()),
-                2,
-                RoundingMode.HALF_UP
-        );
+        BigDecimal baseTariff = feeTypeService.getFeeTypeById(rent.getFeeTypeId()).getPrice();
         BigDecimal peopleDiscount = peopleDiscountService.findByPeopleAmount(rent.getPeopleNumber()).getDiscount();
         BigDecimal specialDiscount = calculateSpecialDiscountForRent(rent);
 

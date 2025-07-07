@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react' // Add useEffect to imports
+import React, { useState, useEffect } from 'react'
 import {
   Typography,
   Box,
@@ -12,14 +12,17 @@ import {
   TableHead,
   TableRow,
   Paper,
-  TextField,
   Stack,
   Chip,
   CircularProgress,
   Alert,
   IconButton,
   Tooltip,
-  Divider
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material'
 import {
   Assessment as ReportIcon,
@@ -53,7 +56,36 @@ const ReporteTarifasPage: React.FC = () => {
     return format(new Date(), 'yyyy-MM')
   })
 
-  // React Query for fetching report data - Remove onError
+  // Generate month options for the last 2 years and next 6 months
+  // Cambiable segun requisitos
+  const generateMonthOptions = () => {
+    const options = []
+    const currentDate = new Date()
+    
+    // Start from 2 years ago
+    const startDate = new Date(currentDate.getFullYear() - 2, 0, 1)
+    // End 6 months from now
+    const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 6, 1)
+    
+    const currentMonth = new Date(startDate)
+    
+    while (currentMonth <= endDate) {
+      const value = format(currentMonth, 'yyyy-MM')
+      const label = format(currentMonth, 'MMMM yyyy', { locale: es })
+        .replace(/^\w/, c => c.toUpperCase())
+      
+      options.push({ value, label })
+      
+      // Move to next month
+      currentMonth.setMonth(currentMonth.getMonth() + 1)
+    }
+    
+    return options.reverse() // Show newest first
+  }
+
+  const monthOptions = generateMonthOptions()
+
+  // React Query for fetching report data
   const {
     data: reportData,
     isLoading,
@@ -64,10 +96,9 @@ const ReporteTarifasPage: React.FC = () => {
     queryFn: () => reportsApi.getFeeTypeReport(startMonth, endMonth),
     enabled: startMonth !== '' && endMonth !== '',
     staleTime: 5 * 60 * 1000 // 5 minutes
-    // Remove the onError - it's deprecated
   })
 
-  // Handle error with useEffect instead
+  // Handle error with useEffect
   useEffect(() => {
     if (error) {
       console.error('Error loading fee type report:', error)
@@ -114,7 +145,7 @@ const ReporteTarifasPage: React.FC = () => {
     }
   }
 
-  // Export to CSV (basic implementation)
+  // Export to CSV
   const handleExport = () => {
     if (!reportData) return
     
@@ -164,24 +195,37 @@ const ReporteTarifasPage: React.FC = () => {
                 Período de reporte
               </Typography>
               <Stack direction="row" spacing={2}>
-                <TextField
-                  label="Mes inicial"
-                  type="month"
-                  value={startMonth}
-                  onChange={(e) => setStartMonth(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  size="small"
-                  sx={{ minWidth: 150 }}
-                />
-                <TextField
-                  label="Mes final"
-                  type="month"
-                  value={endMonth}
-                  onChange={(e) => setEndMonth(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  size="small"
-                  sx={{ minWidth: 150 }}
-                />
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel>Mes inicial</InputLabel>
+                  <Select
+                    value={startMonth}
+                    label="Mes inicial"
+                    onChange={(e) => setStartMonth(e.target.value)}
+                  >
+                    {monthOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <FormControl size="small" sx={{ minWidth: 180 }}>
+                  <InputLabel>Mes final</InputLabel>
+                  <Select
+                    value={endMonth}
+                    label="Mes final"
+                    onChange={(e) => setEndMonth(e.target.value)}
+                  >
+                    {monthOptions
+                      .filter(option => option.value >= startMonth) // Only show months >= start month
+                      .map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
               </Stack>
             </Box>
 

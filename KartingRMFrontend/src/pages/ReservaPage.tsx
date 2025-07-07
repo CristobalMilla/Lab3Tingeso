@@ -60,6 +60,7 @@ const ReservaPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTime, setSelectedTime] = useState<string>('')
   const [peopleNumber, setPeopleNumber] = useState<number>(1)
+  const [peopleNumberDisplay, setPeopleNumberDisplay] = useState<string>('1')
   const [mainClient, setMainClient] = useState<string>('')
   const [subClients, setSubClients] = useState<string[]>([''])
   const [previewData, setPreviewData] = useState<RentPreviewDTO | null>(null)
@@ -366,11 +367,30 @@ const ReservaPage: React.FC = () => {
               {selectedDate && (
                 <Box>
                   <FormControl fullWidth>
-                    <InputLabel>Hora disponible</InputLabel>
+                    <InputLabel 
+                      id="time-select-label"
+                      sx={{ 
+                        backgroundColor: 'white',
+                        paddingX: 1,
+                        zIndex: 1
+                      }}
+                    >
+                      Hora disponible
+                    </InputLabel>
                     <Select
+                      labelId="time-select-label"
                       value={selectedTime}
+                      label="Hora disponible"
                       onChange={(e) => setSelectedTime(e.target.value)}
                       disabled={loadingSlots}
+                      sx={{
+                        '& .MuiSelect-select': {
+                          zIndex: 1
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          zIndex: 0
+                        }
+                      }}
                     >
                       {loadingSlots ? (
                         <MenuItem disabled>Cargando horarios...</MenuItem>
@@ -413,7 +433,7 @@ const ReservaPage: React.FC = () => {
             <Stack spacing={3}>
               <TextField
                 fullWidth
-                label="Nombre del cliente principal"
+                label="Ingrese nombre del cliente principal"
                 value={mainClient}
                 onChange={(e) => handleMainClientChange(e.target.value)}
                 placeholder="Nombre y apellido"
@@ -424,9 +444,39 @@ const ReservaPage: React.FC = () => {
                 fullWidth
                 type="number"
                 label="Número de personas"
-                value={peopleNumber}
-                onChange={(e) => handlePeopleNumberChange(Math.max(1, Math.min(15, parseInt(e.target.value) || 1)))}
-                inputProps={{ min: 1, max: 15 }}
+                value={peopleNumberDisplay}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setPeopleNumberDisplay(value)
+                  
+                  // Only update internal state if it's a valid number
+                  const num = parseInt(value, 10)
+                  if (!isNaN(num) && num >= 1 && num <= 15) {
+                    handlePeopleNumberChange(num)
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value
+                  const num = parseInt(value, 10)
+                  
+                  // Reset to valid number if input is invalid
+                  if (value === '' || isNaN(num) || num < 1 || num > 15) {
+                    setPeopleNumberDisplay('1')
+                    handlePeopleNumberChange(1)
+                  } else {
+                    setPeopleNumberDisplay(num.toString())
+                    handlePeopleNumberChange(num)
+                  }
+                }}
+                onFocus={(e) => {
+                  // Select all text when focused for better UX
+                  e.target.select()
+                }}
+                inputProps={{ 
+                  min: 1, 
+                  max: 15,
+                  step: 1
+                }}
                 helperText="Entre 1 y 15 personas"
                 sx={{ maxWidth: 300 }}
               />
@@ -542,7 +592,7 @@ const ReservaPage: React.FC = () => {
                         Precio total de la tarifa:
                       </Typography>
                       <Typography variant="body1">
-                        {formatCurrency(selectedFeeType?.price || 0)}
+                        {formatCurrency((previewData.receipts[0]?.baseTariff || 0) * peopleNumber)}
                       </Typography>
                     </Box>
                     
