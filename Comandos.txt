@@ -1,7 +1,15 @@
 Sonar:
-	Back:
-		mvn sonar:sonar
 
+Back:
+mvn sonar:sonar
+
+Front:
+Remove-Item -Path "C:\Users\crist\.sonar\cache" -Recurse -Force
+
+$env:SONAR_SCANNER_OPTS = "-Xmx512m"
+$env:JAVA_HOME = (Get-Command java).Source | Split-Path | Split-Path
+
+npm run sonar:scan
 
 
 Comandos SQL luego de poblar manualmente:

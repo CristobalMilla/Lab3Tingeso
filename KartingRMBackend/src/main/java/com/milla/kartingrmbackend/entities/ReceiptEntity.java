@@ -36,10 +36,4 @@ public class ReceiptEntity {
     @Column(name = "final_price")
     private BigDecimal finalPrice;
 
-    public ReceiptEntity(Integer receiptId, Integer rentId, String subClientName, String subClientEmail) {
-        this.receiptId = receiptId;
-        this.rentId = rentId;
-        this.subClientName = subClientName;
-        this.subClientEmail = subClientEmail;
-    }
 }

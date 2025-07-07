@@ -120,7 +120,7 @@ const ReporteTarifasPage: React.FC = () => {
       key !== 'Descripcion' && 
       key !== 'Total' && 
       key !== 'Gran Total' &&
-      key.match(/^\d{4}-\d{2}$/) // Match YYYY-MM format
+      (/^\d{4}-\d{2}$/.exec(key))
     )
   }
 
@@ -155,8 +155,8 @@ const ReporteTarifasPage: React.FC = () => {
       // Data rows
       ...((Array.isArray(reportData) ? reportData : [])).map(row => [
         `"${row.Descripcion}"`,
-        ...getMonthColumns().map(month => row[month] || 0),
-        row.Total || row['Gran Total'] || 0
+        ...getMonthColumns().map(month => row[month] ?? 0),
+        row.Total ?? row['Gran Total'] ?? 0
       ].join(','))
     ].join('\n')
     
@@ -355,8 +355,8 @@ const ReporteTarifasPage: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {/* Data Rows */}
-                    {dataRows.map((row, index) => (
-                      <TableRow key={index} hover>
+                    {dataRows.map((row) => (
+                      <TableRow key={row.Descripcion} hover>
                         <TableCell sx={{ fontWeight: 'medium' }}>
                           {row.Descripcion}
                         </TableCell>

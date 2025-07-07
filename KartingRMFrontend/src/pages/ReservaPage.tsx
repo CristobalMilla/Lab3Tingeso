@@ -118,7 +118,7 @@ const ReservaPage: React.FC = () => {
       if (index === 0) {
         return mainClient
       }
-      return subClients[index] || ''
+      return subClients[index] ?? ''
     })
     setSubClients(newSubClients)
   }
@@ -158,23 +158,23 @@ const ReservaPage: React.FC = () => {
   }
 
   const formatTimeForDisplay = (timeInput: string | number[]): string => {
-      try {
-        let hour: number, minute: number;
-        if (typeof timeInput === 'string') {
-          const parts = timeInput.split(':').map(num => parseInt(num, 10));
-          if (parts.length < 2) return 'No disponible';
-          [hour, minute] = parts;
-        } else if (Array.isArray(timeInput) && timeInput.length >= 2) {
-          [hour, minute] = timeInput;
-        } else {
-          return 'No disponible';
-        }
-  
-        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      } catch {
-        return 'Error al formatear hora';
+    try {
+      let hour: number, minute: number;
+      if (typeof timeInput === 'string') {
+        const parts = timeInput.split(':').map(num => parseInt(num, 10));
+        if (parts.length < 2) return 'No disponible';
+        [hour, minute] = parts;
+      } else if (Array.isArray(timeInput) && timeInput.length >= 2) {
+        [hour, minute] = timeInput;
+      } else {
+        return 'No disponible';
       }
+
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    } catch {
+      return 'Error al formatear hora';
     }
+  }
 
   // Generate rent code
   const generateRentCode = (): string => {
@@ -182,6 +182,31 @@ const ReservaPage: React.FC = () => {
     const dateStr = format(selectedDate, 'yyyyMMdd')
     const clientName = mainClient.replace(/\s+/g, '').toLowerCase()
     return `${clientName}${dateStr}`
+  }
+
+  // Helper function to calculate end time for time slots
+  const calculateEndTime = (startTime: string, duration: number): string => {
+    const [hour, minute] = startTime.split(':').map(Number)
+    const endTime = new Date()
+    endTime.setHours(hour, minute + duration)
+    return format(endTime, 'HH:mm')
+  }
+
+  // Helper function to render time slot options
+  const renderTimeSlotOptions = () => {
+    if (loadingSlots) {
+      return <MenuItem disabled>Cargando horarios...</MenuItem>
+    }
+
+    if (!availableSlots || availableSlots.length === 0) {
+      return <MenuItem disabled>No hay horarios disponibles</MenuItem>
+    }
+
+    return availableSlots.map((time) => (
+      <MenuItem key={time} value={time}>
+        {time} - {calculateEndTime(time, selectedFeeType?.duration ?? 0)} ({selectedFeeType?.duration} min)
+      </MenuItem>
+    ))
   }
 
   // Navigation functions
@@ -243,6 +268,18 @@ const ReservaPage: React.FC = () => {
     }
   }
 
+  const resetForm = () => {
+    setActiveStep(0)
+    setSelectedFeeType(null)
+    setSelectedDate(null)
+    setSelectedTime('')
+    setPeopleNumber(1)
+    setPeopleNumberDisplay('1')
+    setMainClient('')
+    setSubClients([''])
+    setPreviewData(null)
+  }
+
   // Format currency
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('es-CL', {
@@ -251,6 +288,79 @@ const ReservaPage: React.FC = () => {
       minimumFractionDigits: 0
     }).format(amount)
   }
+
+  // Helper function to render fee type loading state
+  const renderFeeTypeLoadingState = () => (
+    <Stack spacing={2}>
+      {['skeleton-1', 'skeleton-2', 'skeleton-3'].map((skeletonId) => (
+        <Skeleton key={skeletonId} variant="rectangular" height={120} />
+      ))}
+    </Stack>
+  )
+
+  // Helper function to render fee type cards
+  const renderFeeTypeCards = () => (
+    <Stack spacing={2}>
+      {feeTypes?.map((feeType) => (
+        <Card 
+          key={feeType.feeTypeId}
+          sx={{ 
+            cursor: 'pointer',
+            border: selectedFeeType?.feeTypeId === feeType.feeTypeId ? 2 : 1,
+            borderColor: selectedFeeType?.feeTypeId === feeType.feeTypeId ? 'primary.main' : 'grey.300',
+            '&:hover': {
+              boxShadow: 3
+            }
+          }}
+          onClick={() => setSelectedFeeType(feeType)}
+        >
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="h5" color="primary" gutterBottom>
+                  {formatCurrency(feeType.price)}
+                </Typography>
+                <Stack direction="row" spacing={3}>
+                  <Typography variant="body2" color="text.secondary">
+                    🏁 {feeType.lapNumber} vueltas
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    ⏱️ Máximo {feeType.maxTime} minutos
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    🕐 Duración: {feeType.duration} min
+                  </Typography>
+                </Stack>
+              </Box>
+              
+              {selectedFeeType?.feeTypeId === feeType.feeTypeId && (
+                <Chip 
+                  label="Seleccionado" 
+                  color="primary" 
+                  size="small"
+                />
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+      ))}
+    </Stack>
+  )
+
+  // Helper function to render participant receipt
+  const renderParticipantReceipt = (receipt: RentPreviewDTO["receipts"][number], index: number, totalReceipts: number) => (
+    <Box key={`receipt-${receipt.subClientName}-${receipt.finalPrice}`}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+        <Typography variant="body1">
+          {receipt.subClientName}
+        </Typography>
+        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+          {formatCurrency(receipt.finalPrice ?? 0)}
+        </Typography>
+      </Box>
+      {index < totalReceipts - 1 && <Divider />}
+    </Box>
+  )
 
   const renderStepContent = () => {
     switch (activeStep) {
@@ -261,59 +371,7 @@ const ReservaPage: React.FC = () => {
               <MoneyIcon /> Selecciona el tipo de tarifa
             </Typography>
             
-            {loadingFeeTypes ? (
-              <Stack spacing={2}>
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} variant="rectangular" height={120} />
-                ))}
-              </Stack>
-            ) : (
-              <Stack spacing={2}>
-                {feeTypes?.map((feeType) => (
-                  <Card 
-                    key={feeType.feeTypeId}
-                    sx={{ 
-                      cursor: 'pointer',
-                      border: selectedFeeType?.feeTypeId === feeType.feeTypeId ? 2 : 1,
-                      borderColor: selectedFeeType?.feeTypeId === feeType.feeTypeId ? 'primary.main' : 'grey.300',
-                      '&:hover': {
-                        boxShadow: 3
-                      }
-                    }}
-                    onClick={() => setSelectedFeeType(feeType)}
-                  >
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box>
-                          <Typography variant="h5" color="primary" gutterBottom>
-                            {formatCurrency(feeType.price)}
-                          </Typography>
-                          <Stack direction="row" spacing={3}>
-                            <Typography variant="body2" color="text.secondary">
-                              🏁 {feeType.lapNumber} vueltas
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              ⏱️ Máximo {feeType.maxTime} minutos
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              🕐 Duración: {feeType.duration} min
-                            </Typography>
-                          </Stack>
-                        </Box>
-                        
-                        {selectedFeeType?.feeTypeId === feeType.feeTypeId && (
-                          <Chip 
-                            label="Seleccionado" 
-                            color="primary" 
-                            size="small"
-                          />
-                        )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Stack>
-            )}
+            {loadingFeeTypes ? renderFeeTypeLoadingState() : renderFeeTypeCards()}
           </Box>
         )
 
@@ -339,9 +397,7 @@ const ReservaPage: React.FC = () => {
                       textField: { 
                         fullWidth: true,
                         helperText: 'Solo fechas futuras',
-                        // Make the entire input clickable
                         onClick: (event) => {
-                          // Prevent default and trigger the DatePicker to open
                           event.preventDefault()
                           const input = event.currentTarget
                           const datePicker = input.closest('.MuiFormControl-root')
@@ -352,10 +408,10 @@ const ReservaPage: React.FC = () => {
                         },
                         sx: {
                           '& .MuiInputBase-input': {
-                            cursor: 'pointer', // Show pointer cursor on hover
+                            cursor: 'pointer',
                           },
                           '& .MuiOutlinedInput-root': {
-                            cursor: 'pointer', // Show pointer cursor on the entire input
+                            cursor: 'pointer',
                           }
                         }
                       } 
@@ -392,22 +448,7 @@ const ReservaPage: React.FC = () => {
                         }
                       }}
                     >
-                      {loadingSlots ? (
-                        <MenuItem disabled>Cargando horarios...</MenuItem>
-                      ) : availableSlots?.length === 0 ? (
-                        <MenuItem disabled>No hay horarios disponibles</MenuItem>
-                      ) : (
-                        availableSlots?.map((time) => (
-                          <MenuItem key={time} value={time}>
-                            {time} - {(() => {
-                              const [hour, minute] = time.split(':').map(Number)
-                              const endTime = new Date()
-                              endTime.setHours(hour, minute + (selectedFeeType?.duration || 0))
-                              return format(endTime, 'HH:mm')
-                            })()} ({selectedFeeType?.duration} min)
-                          </MenuItem>
-                        ))
-                      )}
+                      {renderTimeSlotOptions()}
                     </Select>
                   </FormControl>
                 </Box>
@@ -472,10 +513,12 @@ const ReservaPage: React.FC = () => {
                   // Select all text when focused for better UX
                   e.target.select()
                 }}
-                inputProps={{ 
-                  min: 1, 
-                  max: 15,
-                  step: 1
+                slotProps={{
+                  htmlInput: {
+                    min: 1, 
+                    max: 15,
+                    step: 1
+                  }
                 }}
                 helperText="Entre 1 y 15 personas"
                 sx={{ maxWidth: 300 }}
@@ -501,7 +544,7 @@ const ReservaPage: React.FC = () => {
             <Stack spacing={2}>
               {subClients.map((client, index) => (
                 <TextField
-                  key={index}
+                  key={`participant-${index}-${peopleNumber}`}
                   fullWidth
                   label={`Participante ${index + 1}${index === 0 ? ' (Principal)' : ''}`}
                   value={client}
@@ -592,7 +635,7 @@ const ReservaPage: React.FC = () => {
                         Precio total de la tarifa:
                       </Typography>
                       <Typography variant="body1">
-                        {formatCurrency((previewData.receipts[0]?.baseTariff || 0) * peopleNumber)}
+                        {formatCurrency((previewData.receipts[0]?.baseTariff ?? 0) * peopleNumber)}
                       </Typography>
                     </Box>
                     
@@ -601,7 +644,7 @@ const ReservaPage: React.FC = () => {
                         Precio base por persona ({peopleNumber} personas):
                       </Typography>
                       <Typography variant="body1">
-                        {formatCurrency(previewData.receipts[0]?.baseTariff || 0)}
+                        {formatCurrency(previewData.receipts[0]?.baseTariff ?? 0)}
                       </Typography>
                     </Box>
                     
@@ -610,7 +653,7 @@ const ReservaPage: React.FC = () => {
                         Descuento por grupo:
                       </Typography>
                       <Typography variant="body1">
-                        {((1 - (previewData.receipts[0]?.sizeDiscount || 1)) * 100).toFixed(0)}%
+                        {((1 - (previewData.receipts[0]?.sizeDiscount ?? 1)) * 100).toFixed(0)}%
                       </Typography>
                     </Box>
                     
@@ -619,7 +662,7 @@ const ReservaPage: React.FC = () => {
                         Descuento especial:
                       </Typography>
                       <Typography variant="body1">
-                        {((1 - (previewData.receipts[0]?.specialDiscount || 1)) * 100).toFixed(0)}%
+                        {((1 - (previewData.receipts[0]?.specialDiscount ?? 1)) * 100).toFixed(0)}%
                       </Typography>
                     </Box>
                     
@@ -630,7 +673,7 @@ const ReservaPage: React.FC = () => {
                         Subtotal por persona:
                       </Typography>
                       <Typography variant="body1">
-                        {formatCurrency(previewData.receipts[0]?.aggregatedPrice || 0)}
+                        {formatCurrency(previewData.receipts[0]?.aggregatedPrice ?? 0)}
                       </Typography>
                     </Box>
                     
@@ -639,7 +682,7 @@ const ReservaPage: React.FC = () => {
                         IVA por persona (19%):
                       </Typography>
                       <Typography variant="body1">
-                        {formatCurrency(previewData.receipts[0]?.ivaPrice || 0)}
+                        {formatCurrency(previewData.receipts[0]?.ivaPrice ?? 0)}
                       </Typography>
                     </Box>
                     
@@ -648,7 +691,7 @@ const ReservaPage: React.FC = () => {
                         Total por persona:
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                        {formatCurrency(previewData.receipts[0]?.finalPrice || 0)}
+                        {formatCurrency(previewData.receipts[0]?.finalPrice ?? 0)}
                       </Typography>
                     </Box>
                   </Stack>
@@ -660,19 +703,9 @@ const ReservaPage: React.FC = () => {
                     Participantes y Precios Individuales
                   </Typography>
                   <Stack spacing={1}>
-                    {previewData.receipts.map((receipt, index) => (
-                      <Box key={index}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-                          <Typography variant="body1">
-                            {receipt.subClientName}
-                          </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                            {formatCurrency(receipt.finalPrice || 0)}
-                          </Typography>
-                        </Box>
-                        {index < previewData.receipts.length - 1 && <Divider />}
-                      </Box>
-                    ))}
+                    {previewData.receipts.map((receipt, index) => 
+                      renderParticipantReceipt(receipt, index, previewData.receipts.length)
+                    )}
                   </Stack>
                 </Paper>
 
@@ -683,7 +716,7 @@ const ReservaPage: React.FC = () => {
                       Total de la Reserva
                     </Typography>
                     <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                      {formatCurrency(previewData.rent.totalPrice || 0)}
+                      {formatCurrency(previewData.rent.totalPrice ?? 0)}
                     </Typography>
                   </Box>
                 </Paper>
@@ -726,7 +759,7 @@ const ReservaPage: React.FC = () => {
                     <strong>Hora:</strong> {formatTimeForDisplay(saveReservationMutation.data.rentTime)}
                   </Typography>
                   <Typography variant="h6" color="primary" sx={{ mt: 2 }}>
-                    Total: {formatCurrency(saveReservationMutation.data.totalPrice || 0)}
+                    Total: {formatCurrency(saveReservationMutation.data.totalPrice ?? 0)}
                   </Typography>
                 </Stack>
               </Paper>
@@ -734,17 +767,7 @@ const ReservaPage: React.FC = () => {
 
             <Button 
               variant="contained" 
-              onClick={() => {
-                // Reset form
-                setActiveStep(0)
-                setSelectedFeeType(null)
-                setSelectedDate(null)
-                setSelectedTime('')
-                setPeopleNumber(1)
-                setMainClient('')
-                setSubClients([''])
-                setPreviewData(null)
-              }}
+              onClick={resetForm}
             >
               Hacer Nueva Reserva
             </Button>

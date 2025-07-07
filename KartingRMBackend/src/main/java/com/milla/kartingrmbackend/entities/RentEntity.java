@@ -34,13 +34,4 @@ public class RentEntity {
     @Column(name = "total_price")
     private BigDecimal totalPrice;
 
-    public RentEntity(Integer rentId, String rentCode, LocalDate rentDate, LocalTime rentTime, int feeTypeId, int peopleNumber, String mainClient) {
-        this.rentId = rentId;
-        this.rentCode = rentCode;
-        this.rentDate = rentDate;
-        this.rentTime = rentTime;
-        this.feeTypeId = feeTypeId;
-        this.peopleNumber = peopleNumber;
-        this.mainClient = mainClient;
-    }
 }

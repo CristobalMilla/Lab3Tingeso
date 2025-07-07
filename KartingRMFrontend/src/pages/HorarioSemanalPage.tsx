@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Typography,
   Box,
@@ -28,6 +28,161 @@ import toast from 'react-hot-toast'
 import { calendarApi } from '../services/calendarApi'
 import type { CalendarEvent, DaySchedule, TimeSlot } from '../types/calendar'
 
+// Component for rendering event details - EXTRACTED from main component
+const EventCard: React.FC<{ 
+  event: CalendarEvent; 
+  isMultiple: boolean;
+  formatEventTime: (event: CalendarEvent) => string;
+}> = ({ event, isMultiple, formatEventTime }) => (
+  <Box
+    sx={{
+      backgroundColor: 'primary.light',
+      color: 'primary.contrastText',
+      borderRadius: 1,
+      p: 0.5,
+      mb: isMultiple ? 0.5 : 0,
+      minHeight: 50
+    }}
+  >
+    <Typography variant="caption" display="block" sx={{ fontWeight: 'bold', mb: 0.25, fontSize: '0.65rem' }}>
+      {event.title}
+    </Typography>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mb: 0.25 }}>
+      <PersonIcon sx={{ fontSize: 10 }} />
+      <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>
+        {event.clientName}
+      </Typography>
+    </Box>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+      <TimeIcon sx={{ fontSize: 10 }} />
+      <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>
+        {formatEventTime(event)}
+      </Typography>
+    </Box>
+  </Box>
+)
+
+// Component for rendering time slot content - EXTRACTED from main component
+const TimeSlotContent: React.FC<{ 
+  shouldShowSlot: boolean; 
+  events: CalendarEvent[];
+  formatEventTime: (event: CalendarEvent) => string;
+}> = ({ shouldShowSlot, events, formatEventTime }) => {
+  if (!shouldShowSlot) {
+    return (
+      <Box sx={{ 
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 50,
+        backgroundColor: 'grey.100'
+      }}>
+        <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
+          Cerrado
+        </Typography>
+      </Box>
+    )
+  }
+
+  if (events.length > 0) {
+    return (
+      <>
+        {events.map((event) => (
+          <EventCard 
+            key={`${event.title}-${event.clientName}-${formatEventTime(event)}`}
+            event={event} 
+            isMultiple={events.length > 1}
+            formatEventTime={formatEventTime}
+          />
+        ))}
+      </>
+    )
+  }
+
+  return (
+    <Box sx={{ 
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 50
+    }}>
+      <Chip 
+        label="Disponible" 
+        size="small" 
+        color="success" 
+        variant="outlined"
+        sx={{ fontSize: '0.7rem' }}
+      />
+    </Box>
+  )
+}
+
+// Component for rendering a single time slot row - EXTRACTED from main component
+const TimeSlotRow: React.FC<{ 
+  timeSlot: string;
+  dailySchedule: DaySchedule[];
+  formatEventTime: (event: CalendarEvent) => string;
+}> = ({ timeSlot, dailySchedule, formatEventTime }) => (
+  <Box sx={{ 
+    display: 'flex',
+    borderBottom: 1,
+    borderColor: 'divider',
+    minHeight: 60,
+    minWidth: 800,
+    '&:hover': {
+      backgroundColor: 'grey.25'
+    }
+  }}>
+    {/* Time column */}
+    <Box sx={{ 
+      width: 100,
+      p: 1,
+      borderRight: 1, 
+      borderColor: 'divider',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'grey.50',
+      flexShrink: 0
+    }}>
+      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+        {timeSlot}
+      </Typography>
+    </Box>
+
+    {/* Day columns */}
+    {dailySchedule.map((day) => {
+      const currentDayDate = parseISO(day.date + 'T00:00:00')
+      const dayOfWeek = currentDayDate.getDay()
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+      const timeHour = parseInt(timeSlot.split(':')[0])
+      const shouldShowSlot = isWeekend ? timeHour >= 10 : timeHour >= 14
+      const dayTimeSlot = day.timeSlots.find(slot => slot.time === timeSlot)
+      const events = dayTimeSlot?.events || []
+      
+      return (
+        <Box key={day.date} sx={{ 
+          width: 100,
+          p: 1,
+          borderRight: 1,
+          borderColor: 'divider',
+          minHeight: 58,
+          flexShrink: 0,
+          '&:last-child': { borderRight: 0 }
+        }}>
+          <TimeSlotContent 
+            shouldShowSlot={shouldShowSlot} 
+            events={events}
+            formatEventTime={formatEventTime}
+          />
+        </Box>
+      )
+    })}
+  </Box>
+)
+
 const HorarioSemanalPage: React.FC = () => {
   const [currentWeek, setCurrentWeek] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
 
@@ -49,10 +204,10 @@ const HorarioSemanalPage: React.FC = () => {
   }, [error])
 
   // Generate time slots (10:00-22:00 on weekends, 14:00-22:00 on weekdays)
-  const generateTimeSlots = (dayOfWeek: number): string[] => {
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // Sunday or Saturday
+  const generateTimeSlots = useCallback((dayOfWeek: number): string[] => {
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
     const startHour = isWeekend ? 10 : 14
-    const endHour = 21 // Changed from 22 to 21 (last slot at 21:30)
+    const endHour = 21
     
     const slots: string[] = []
     for (let hour = startHour; hour <= endHour; hour++) {
@@ -61,39 +216,83 @@ const HorarioSemanalPage: React.FC = () => {
         slots.push(`${hour.toString().padStart(2, '0')}:30`)
       }
     }
-    // Add the final 21:30 slot
     slots.push('21:30')
     return slots
-  }
+  }, [])
 
   // Helper function to convert Java LocalDateTime array to Date
-  const parseJavaLocalDateTime = (javaDateTime: number[]): Date => {
+  const parseJavaLocalDateTime = useCallback((javaDateTime: number[]): Date => {
     if (Array.isArray(javaDateTime) && javaDateTime.length >= 3) {
-      // Java LocalDateTime array format: [year, month, day, hour, minute, second?, nanosecond?]
       const [year, month, day, hour = 0, minute = 0, second = 0] = javaDateTime
-      // Note: Java month is 1-based, JavaScript month is 0-based
       return new Date(year, month - 1, day, hour, minute, second)
     }
     throw new Error('Invalid Java LocalDateTime format')
-  }
+  }, [])
 
   // Helper function to handle different date formats
-  const parseEventDate = (dateValue: unknown): Date => {
+  const parseEventDate = useCallback((dateValue: unknown): Date => {
     if (typeof dateValue === 'string') {
       return parseISO(dateValue)
-    } else if (dateValue instanceof Date) {
-      return dateValue
-    } else if (Array.isArray(dateValue)) {
-      return parseJavaLocalDateTime(dateValue)
-    } else if (dateValue && typeof dateValue === 'object') {
-      return parseISO(String(dateValue))
-    } else {
-      throw new Error('Unknown date format')
     }
-  }
+    if (dateValue instanceof Date) {
+      return dateValue
+    }
+    if (Array.isArray(dateValue)) {
+      return parseJavaLocalDateTime(dateValue)
+    }
+    if (dateValue && typeof dateValue === 'object' && 'toISOString' in dateValue) {
+      const dateObject = dateValue as { toISOString: () => string }
+      if (typeof dateObject.toISOString === 'function') {
+        return parseISO(dateObject.toISOString())
+      }
+    }
+    throw new Error('Unknown date format')
+  }, [parseJavaLocalDateTime])
+
+  // Helper function to check if event overlaps with time slot
+  const isEventInTimeSlot = useCallback((event: CalendarEvent, timeSlot: string, baseDate: Date): boolean => {
+    try {
+      const eventStartDate = parseEventDate(event.start)
+      const eventEndDate = parseEventDate(event.end)
+      
+      const [slotHour, slotMinute] = timeSlot.split(':').map(Number)
+      const slotStart = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), slotHour, slotMinute)
+      const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000)
+      
+      return (
+        (eventStartDate >= slotStart && eventStartDate < slotEnd) ||
+        (eventEndDate > slotStart && eventEndDate <= slotEnd) ||
+        (eventStartDate <= slotStart && eventEndDate >= slotEnd)
+      )
+    } catch (error) {
+      console.error('Error parsing event time for slot matching:', event, error)
+      return false
+    }
+  }, [parseEventDate])
+
+  // Helper function to filter events for a specific day
+  const getEventsForDay = useCallback((events: CalendarEvent[], dateStr: string): CalendarEvent[] => {
+    return events.filter(event => {
+      try {
+        const eventDate = parseEventDate(event.start)
+        return format(eventDate, 'yyyy-MM-dd') === dateStr
+      } catch (error) {
+        console.error('Error parsing event date:', event, error)
+        return false
+      }
+    })
+  }, [parseEventDate])
+
+  // Helper function to create time slots with events
+  const createTimeSlotsWithEvents = useCallback((timeSlots: string[], dayEvents: CalendarEvent[], baseDate: Date): TimeSlot[] => {
+    return timeSlots.map(time => ({
+      time,
+      events: dayEvents.filter(event => isEventInTimeSlot(event, time, baseDate))
+    }))
+  }, [isEventInTimeSlot])
 
   // Process events into daily schedule format
-  const processDailySchedule = (): DaySchedule[] => {
+  const dailySchedule = useMemo((): DaySchedule[] => {
     const schedule: DaySchedule[] = []
     
     for (let i = 0; i < 7; i++) {
@@ -101,47 +300,12 @@ const HorarioSemanalPage: React.FC = () => {
       const dayOfWeek = currentDay.getDay()
       const dateStr = format(currentDay, 'yyyy-MM-dd')
       
-      // Get events for this day
       const weekLabel = Object.keys(weeklyEvents || {})[0]
       const events = weeklyEvents?.[weekLabel] || []
       
-      // Filter events for this day with better date handling
-      const dayEvents = events.filter(event => {
-        try {
-          const eventDate = parseEventDate(event.start)
-          return format(eventDate, 'yyyy-MM-dd') === dateStr
-        } catch (error) {
-          console.error('Error parsing event date:', event, error)
-          return false
-        }
-      })
-
-      // Generate time slots for this day
+      const dayEvents = getEventsForDay(events, dateStr)
       const timeSlots = generateTimeSlots(dayOfWeek)
-      const slotsWithEvents: TimeSlot[] = timeSlots.map(time => ({
-        time,
-        events: dayEvents.filter(event => {
-          try {
-            const eventStartDate = parseEventDate(event.start)
-            const eventEndDate = parseEventDate(event.end)
-            
-            // Parse current time slot boundaries
-            const [slotHour, slotMinute] = time.split(':').map(Number)
-            const slotStart = new Date(eventStartDate.getFullYear(), eventStartDate.getMonth(), eventStartDate.getDate(), slotHour, slotMinute)
-            const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000) // Add 30 minutes
-            
-            // Check if event overlaps with this 30-minute time slot
-            return (
-              (eventStartDate >= slotStart && eventStartDate < slotEnd) || // Event starts in this slot
-              (eventEndDate > slotStart && eventEndDate <= slotEnd) || // Event ends in this slot
-              (eventStartDate <= slotStart && eventEndDate >= slotEnd) // Event spans this entire slot
-            )
-          } catch (error) {
-            console.error('Error parsing event time for slot matching:', event, error)
-            return false
-          }
-        })
-      }))
+      const slotsWithEvents = createTimeSlotsWithEvents(timeSlots, dayEvents, currentDay)
 
       schedule.push({
         date: dateStr,
@@ -151,27 +315,48 @@ const HorarioSemanalPage: React.FC = () => {
     }
     
     return schedule
-  }
-
-  const dailySchedule = processDailySchedule()
+  }, [currentWeek, weeklyEvents, getEventsForDay, generateTimeSlots, createTimeSlotsWithEvents])
 
   // Navigation handlers
-  const goToPreviousWeek = () => {
+  const goToPreviousWeek = useCallback(() => {
     setCurrentWeek(prev => subWeeks(prev, 1))
-  }
+  }, [])
 
-  const goToNextWeek = () => {
+  const goToNextWeek = useCallback(() => {
     setCurrentWeek(prev => addWeeks(prev, 1))
-  }
+  }, [])
 
-  const goToCurrentWeek = () => {
+  const goToCurrentWeek = useCallback(() => {
     setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }))
-  }
+  }, [])
 
-  // Event card component
+  // Helper function to format event time
+  const formatEventTime = useCallback((event: CalendarEvent): string => {
+    try {
+      const startDate = parseEventDate(event.start)
+      const endDate = parseEventDate(event.end)
+      return `${format(startDate, 'HH:mm')} - ${format(endDate, 'HH:mm')}`
+    } catch (error) {
+      console.error('Error formatting event time:', event, error)
+      return 'Hora no disponible'
+    }
+  }, [parseEventDate])
+
+  // Generate all possible time slots
+  const allTimeSlots = useMemo((): string[] => {
+    const slots: string[] = []
+    for (let hour = 10; hour <= 21; hour++) {
+      slots.push(`${hour.toString().padStart(2, '0')}:00`)
+      if (hour < 21) {
+        slots.push(`${hour.toString().padStart(2, '0')}:30`)
+      }
+    }
+    slots.push('21:30')
+    return slots
+  }, [])
 
   return (
-    <Box sx={{ p: 3 }}> {/* Removed the viewport width overrides */}
+    <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h3" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -242,7 +427,7 @@ const HorarioSemanalPage: React.FC = () => {
         </Alert>
       )}
 
-      {/* Weekly Schedule Grid - Contained Width */}
+      {/* Weekly Schedule Grid */}
       {!isLoading && !error && (
         <Card sx={{ width: '100%', overflowX: 'auto' }}>
           <CardContent sx={{ p: 0 }}>
@@ -252,9 +437,8 @@ const HorarioSemanalPage: React.FC = () => {
               borderBottom: 1, 
               borderColor: 'divider',
               backgroundColor: 'grey.50',
-              minWidth: 800 // Ensure minimum table width
+              minWidth: 800
             }}>
-              {/* Time column header */}
               <Box sx={{ 
                 width: 100,
                 p: 2, 
@@ -270,10 +454,9 @@ const HorarioSemanalPage: React.FC = () => {
                 </Typography>
               </Box>
               
-              {/* Day headers */}
               {dailySchedule.map((day) => (
                 <Box key={day.date} sx={{ 
-                  width: 100, // Fixed width instead of flex
+                  width: 100,
                   p: 2, 
                   textAlign: 'center',
                   borderRight: 1,
@@ -291,151 +474,16 @@ const HorarioSemanalPage: React.FC = () => {
               ))}
             </Box>
 
-            {/* Schedule Content with Single Vertical Scroll */}
+            {/* Schedule Content */}
             <Box sx={{ height: 600, overflowY: 'auto' }}>
-              {/* Generate ALL possible time slots (10:00-21:30) */}
-              {(() => {
-                // Generate all possible time slots from 10:00 to 21:30
-                const allTimeSlots: string[] = []
-                for (let hour = 10; hour <= 21; hour++) {
-                  allTimeSlots.push(`${hour.toString().padStart(2, '0')}:00`)
-                  if (hour < 21) {
-                    allTimeSlots.push(`${hour.toString().padStart(2, '0')}:30`)
-                  }
-                }
-                allTimeSlots.push('21:30')
-                
-                return allTimeSlots.map((timeSlot) => (
-                  <Box key={timeSlot} sx={{ 
-                    display: 'flex',
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                    minHeight: 60,
-                    minWidth: 800, // Match header width
-                    '&:hover': {
-                      backgroundColor: 'grey.25'
-                    }
-                  }}>
-                    {/* Time column */}
-                    <Box sx={{ 
-                      width: 100,
-                      p: 1,
-                      borderRight: 1, 
-                      borderColor: 'divider',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: 'grey.50',
-                      flexShrink: 0
-                    }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                        {timeSlot}
-                      </Typography>
-                    </Box>
-
-                    {/* Day columns */}
-                    {dailySchedule.map((day) => {
-                      const currentDayDate = parseISO(day.date + 'T00:00:00')
-                      const dayOfWeek = currentDayDate.getDay()
-                      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // Sunday or Saturday
-                      
-                      // Check if this time slot should be available for this day
-                      const timeHour = parseInt(timeSlot.split(':')[0])
-                      const shouldShowSlot = isWeekend ? timeHour >= 10 : timeHour >= 14
-                      
-                      // Find events for this time slot
-                      const dayTimeSlot = day.timeSlots.find(slot => slot.time === timeSlot)
-                      const events = dayTimeSlot?.events || []
-                      
-                      return (
-                        <Box key={day.date} sx={{ 
-                          width: 100, // Fixed width instead of flex
-                          p: 1,
-                          borderRight: 1,
-                          borderColor: 'divider',
-                          minHeight: 58,
-                          flexShrink: 0,
-                          '&:last-child': { borderRight: 0 }
-                        }}>
-                          {!shouldShowSlot ? (
-                            // Show closed/unavailable for weekdays before 14:00
-                            <Box sx={{ 
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minHeight: 50,
-                              backgroundColor: 'grey.100'
-                            }}>
-                              <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}> {/* Changed from 0.65rem */}
-                                Cerrado
-                              </Typography>
-                            </Box>
-                          ) : events.length > 0 ? (
-                            // Show events (keep existing styling)
-                            events.map((event, eventIndex) => (
-                              <Box
-                                key={eventIndex}
-                                sx={{
-                                  backgroundColor: 'primary.light',
-                                  color: 'primary.contrastText',
-                                  borderRadius: 1,
-                                  p: 0.5,
-                                  mb: events.length > 1 ? 0.5 : 0,
-                                  minHeight: 50
-                                }}
-                              >
-                                <Typography variant="caption" display="block" sx={{ fontWeight: 'bold', mb: 0.25, fontSize: '0.65rem' }}> {/* Keep existing size */}
-                                  {event.title}
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mb: 0.25 }}>
-                                  <PersonIcon sx={{ fontSize: 10 }} />
-                                  <Typography variant="caption" sx={{ fontSize: '0.6rem' }}> {/* Slightly increased from 0.55rem */}
-                                    {event.clientName}
-                                  </Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                                  <TimeIcon sx={{ fontSize: 10 }} />
-                                  <Typography variant="caption" sx={{ fontSize: '0.6rem' }}>
-                                    {(() => {
-                                      try {
-                                        const startDate = parseEventDate(event.start)
-                                        const endDate = parseEventDate(event.end)
-                                        
-                                        return `${format(startDate, 'HH:mm')} - ${format(endDate, 'HH:mm')}`
-                                      } catch (error) {
-                                        console.error('Error formatting event time:', event, error)
-                                        return 'Hora no disponible'
-                                      }
-                                    })()}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            ))
-                          ) : (
-                            // Show available
-                            <Box sx={{ 
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minHeight: 50
-                            }}>
-                              <Chip 
-                                label="Disponible" 
-                                size="small" 
-                                color="success" 
-                                variant="outlined"
-                                sx={{ fontSize: '0.7rem' }}
-                              />
-                            </Box>
-                          )}
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                ));
-              })()}
+              {allTimeSlots.map((timeSlot) => (
+                <TimeSlotRow 
+                  key={timeSlot} 
+                  timeSlot={timeSlot} 
+                  dailySchedule={dailySchedule}
+                  formatEventTime={formatEventTime}
+                />
+              ))}
             </Box>
           </CardContent>
         </Card>
